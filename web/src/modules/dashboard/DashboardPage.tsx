@@ -122,7 +122,7 @@ const DashboardPage: React.FC = () => {
 
   const storiesProgress = storiesTotal > 0 ? Math.round((storiesDone / storiesTotal) * 100) : 0;
 
-  const usersById = React.useMemo(() => {
+  const usersById = (() => {
     const map = new Map<string, string>();
     if (users) {
       for (const u of users) {
@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
       }
     }
     return map;
-  }, [users]);
+  })();
 
   const workloadWithLabels = workloadByDeveloper.map((w) => {
     const label = usersById.get(w.userId) || w.userId || 'Unassigned';
