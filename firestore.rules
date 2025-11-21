@@ -1,0 +1,318 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function hasRoles() {
+      return isSignedIn() && request.auth.token.roles is list;
+    }
+
+    function hasGlobalRole(role) {
+      return hasRoles() && role in request.auth.token.roles;
+    }
+
+    function isAdmin() {
+      return hasGlobalRole('admin');
+    }
+
+    // Generic role helper based on custom claims
+    function hasRole(role) {
+      return hasGlobalRole(role);
+    }
+
+    function isProjectManager() {
+      return hasRole('project-manager');
+    }
+
+    // Membership helper that supports both list and map formats for members
+    function isProjectMember(project) {
+      return (project.data.members is list && authUid() in project.data.members)
+             || (project.data.members is map && project.data.members[authUid()] == true);
+    }
+
+    function isProjectLead(project) {
+      return hasRole('project-lead') && isProjectMember(project);
+    }
+
+    function isDeveloper(project) {
+      return hasRole('developer') && isProjectMember(project);
+    }
+
+    function isTester(project) {
+      return hasRole('tester') && isProjectMember(project);
+    }
+
+    function isValidator(project) {
+      return hasRole('validator') && isProjectMember(project);
+    }
+
+    function isBasicUser(project) {
+      return hasRole('user') && isProjectMember(project);
+    }
+
+    function authUid() {
+      return request.auth.uid;
+    }
+
+    function authEmail() {
+      return request.auth.token.email;
+    }
+
+    function getProject(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId));
+    }
+
+    // Project-level access helpers
+    function canReadProject(project) {
+      return isAdmin()
+             || isProjectManager()
+             || isProjectMember(project)
+             || isProjectLead(project);
+    }
+
+    // Version basée sur resource pour les requêtes sur /projects
+    // Autorise :
+    // - admin / project-manager pour tous les projets
+    // - tout utilisateur membre du projet (members en list OU map)
+    function canReadProjectResource() {
+      return isAdmin()
+             || isProjectManager()
+             || (resource.data.members is list && authUid() in resource.data.members)
+             || (resource.data.members is map && resource.data.members[authUid()] == true);
+    }
+
+    function canManageMembers(project) {
+      return isAdmin()
+             || isProjectManager()
+             || isProjectLead(project);
+    }
+
+    // Who can create / update backlog items (everyone except basic read-only users)
+    function canEditBacklog(project) {
+      return isAdmin()
+             || isProjectManager()
+             || isProjectLead(project)
+             || isDeveloper(project)
+             || isTester(project)
+             || isValidator(project);
+    }
+
+    // Who can create / update bugs (validator is not required here)
+    function canCreateOrUpdateBug(project) {
+      return isAdmin()
+             || isProjectManager()
+             || isProjectLead(project)
+             || isDeveloper(project)
+             || isTester(project);
+    }
+
+    function getWorkflowDoc(workflowId) {
+      return get(/databases/$(database)/documents/workflow/$(workflowId));
+    }
+
+    function isValidWorkflowStatus(projectId, status) {
+      let project = getProject(projectId);
+      return !(project.data.workflowId is string)
+             || status in getWorkflowDoc(project.data.workflowId).data.states;
+    }
+
+    // USERS
+    match /users/{uid} {
+      // Seuls les admins peuvent lire tous les utilisateurs
+      // Les utilisateurs peuvent lire leur propre profil
+      allow read: if isAdmin() || authUid() == uid;
+
+      // Création par signup trigger: les clients ne doivent créer que des users avec roles == ['user']
+      // Note: Les Firebase Functions utilisent l'Admin SDK et contournent ces règles
+      allow create: if isSignedIn()
+                    && request.resource.data.email is string
+                    && request.resource.data.roles == ['user'];
+
+      // L'utilisateur peut mettre à jour son profil mais pas ses rôles.
+      // Seuls les admins peuvent modifier les rôles.
+      allow update: if isAdmin()
+                    || (authUid() == uid 
+                        && !('roles' in request.resource.data)
+                        && !('email' in request.resource.data));
+
+      allow delete: if isAdmin();
+    }
+
+    // WORKFLOWS (globaux, référencés par les projets)
+    match /workflow/{workflowId} {
+      allow read: if isSignedIn();
+      allow create, update, delete: if isAdmin() || hasGlobalRole('project-manager');
+    }
+
+    // NOTIFICATIONS
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && resource.data.userId == authUid();
+
+      // Écriture réservée aux fonctions / admins
+      allow create: if isAdmin() || (isSignedIn() && request.auth.token.isFunction == true);
+
+      // L'utilisateur peut uniquement marquer la notif comme lue
+      allow update: if isSignedIn()
+                    && authUid() == resource.data.userId
+                    && request.resource.data.diff(resource.data).changedKeys().hasOnly(['read']);
+
+      allow delete: if false;
+    }
+
+    // PROJETS, MEMBRES ET BACKLOG
+    match /projects/{projectId} {
+      // Always work from the canonical project doc for role/membership checks
+      function project() {
+        return getProject(projectId);
+      }
+
+      function isProjectOwner() {
+        return isSignedIn() && project().data.owner == authUid();
+      }
+
+      // ---- Project document ----
+      // Utilise resource.data pour les requêtes de collection, évite les get() récursifs
+      allow read: if canReadProjectResource();
+
+      allow create: if isSignedIn()
+                    && request.resource.data.name is string
+                    && request.resource.data.owner == authUid()
+                    && request.resource.data.members is list;
+
+      allow update: if canManageMembers(project()) || isProjectOwner();
+      allow delete: if isAdmin() || isProjectOwner();
+
+      // ---- Project members subcollection ----
+      match /members/{uid} {
+        allow read: if canReadProject(project());
+        allow create, update, delete: if canManageMembers(project());
+      }
+
+      // EPICS
+      match /epics/{epicId} {
+        allow read: if canReadProject(project());
+
+        allow create: if canEditBacklog(project())
+                      && request.resource.data.title is string
+                      && request.resource.data.status is string
+                      && request.resource.data.priority is string;
+
+        allow update: if canEditBacklog(project());
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // STORIES
+      match /stories/{storyId} {
+        allow read: if canReadProject(project());
+
+        allow create: if canEditBacklog(project())
+                      && request.resource.data.title is string
+                      && request.resource.data.status is string
+                      && isValidWorkflowStatus(projectId, request.resource.data.status)
+                      && request.resource.data.storyPoints is number;
+
+        allow update: if canEditBacklog(project())
+                      && isValidWorkflowStatus(projectId, request.resource.data.status);
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // TASKS
+      match /tasks/{taskId} {
+        allow read: if canReadProject(project());
+
+        // Helper: who can update this specific task?
+        // - Admin / Project Manager / Project Lead: toujours
+        // - Developer: uniquement si la tâche est assignée à son email et qu'il ne change pas ce champ
+        // - Tester / Validator: autorisés via canEditBacklog(project())
+        function canUpdateTask() {
+          let proj = project();
+          return isAdmin()
+                 || isProjectManager()
+                 || isProjectLead(proj)
+                 || (isDeveloper(proj)
+                     && resource.data.assignedTo is string
+                     && resource.data.assignedTo == authEmail()
+                     && request.resource.data.assignedTo == resource.data.assignedTo)
+                 || isTester(proj)
+                 || isValidator(proj);
+        }
+
+        allow create: if canEditBacklog(project())
+                      && request.resource.data.title is string
+                      && request.resource.data.status is string
+                      && isValidWorkflowStatus(projectId, request.resource.data.status);
+
+        allow update: if canUpdateTask()
+                      && isValidWorkflowStatus(projectId, request.resource.data.status);
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // BUGS
+      match /bugs/{bugId} {
+        allow read: if canReadProject(project());
+
+        // Création / update des bugs : admin, PM, PL, dev, tester
+        allow create: if canCreateOrUpdateBug(project())
+                      && request.resource.data.title is string
+                      && request.resource.data.severity is number
+                      && request.resource.data.severity >= 0
+                      && request.resource.data.severity <= 10
+                      && request.resource.data.status is string;
+
+        allow update: if canCreateOrUpdateBug(project())
+                      && request.resource.data.severity is number
+                      && request.resource.data.severity >= 0
+                      && request.resource.data.severity <= 10;
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // RISKS (gérés par Admins et Project Managers globalement)
+      match /risks/{riskId} {
+        allow read: if canReadProject(project());
+
+        allow create, update: if (isAdmin() || isProjectManager())
+                              && request.resource.data.probability in ['low', 'medium', 'high']
+                              && request.resource.data.severity in ['low', 'medium', 'high', 'critical'];
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // DOCUMENTS
+      match /documents/{docId} {
+        allow read: if canReadProject(project());
+        allow create, update, delete: if canEditBacklog(project());
+      }
+
+      // SPRINTS
+      match /sprints/{sprintId} {
+        allow read: if canReadProject(project());
+        allow create: if canEditBacklog(project())
+                      && request.resource.data.name is string
+                      && request.resource.data.status is string;
+        allow update: if canEditBacklog(project());
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+
+      // REQUIREMENTS
+      match /requirements/{requirementId} {
+        allow read: if canReadProject(project());
+        allow create: if canEditBacklog(project())
+                      && request.resource.data.title is string
+                      && request.resource.data.taskId is string
+                      && request.resource.data.acceptanceCriteria is list;
+        // Mise à jour principalement réservée aux rôles de validation / pilotage
+        allow update: if isAdmin()
+                      || isProjectManager()
+                      || isProjectLead(project())
+                      || isValidator(project());
+        allow delete: if isAdmin() || isProjectOwner();
+      }
+    }
+
+    // TODO: règles projet détaillées à compléter dans l'étape suivante
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
