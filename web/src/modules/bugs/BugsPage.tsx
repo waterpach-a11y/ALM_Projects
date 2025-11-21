@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { useProjectStore } from '../projects/useProjectStore';
 import { Card } from '../../components/ui/Card';
 import { SectionTitle } from '../../components/ui/SectionTitle';
 import { EmptyState } from '../../components/ui/EmptyState';
 
 const BugsPage: React.FC = () => {
+  const { id: projectIdFromUrl } = useParams<{ id: string }>();
+  const { currentProjectId, setCurrentProjectId } = useProjectStore();
+
+  // Update store when projectId comes from URL
+  useEffect(() => {
+    if (projectIdFromUrl && projectIdFromUrl !== currentProjectId) {
+      setCurrentProjectId(projectIdFromUrl);
+    }
+  }, [projectIdFromUrl, currentProjectId, setCurrentProjectId]);
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="mb-2">

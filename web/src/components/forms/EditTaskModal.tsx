@@ -4,6 +4,7 @@ import { FormField, Input, Textarea, Select } from '../ui/FormField';
 import { Button } from '../ui/Button';
 import { Task, useUpdateTask } from '../../modules/backlog/useTasks';
 import { useAuth } from '../../modules/auth/AuthContext';
+import { useProjectMembers } from '../../modules/projects/useProjectMembers';
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface EditTaskModalProps {
 export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, task, projectId }) => {
   const { user } = useAuth();
   const updateTask = useUpdateTask();
+  const { data: projectMembers } = useProjectMembers(projectId);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -36,13 +38,23 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
       setEstimatedHours(task.estimatedHours);
       setTimeSpent(task.timeSpent);
       setRemainingHours(task.remainingHours);
-      setAssignedTo(task.assignedTo || '');
+      
+      // Match assignedTo with project member (by email or ID)
+      if (task.assignedTo && projectMembers) {
+        const member = projectMembers.find(
+          (m) => m.id === task.assignedTo || m.email === task.assignedTo
+        );
+        setAssignedTo(member ? (member.email || member.id) : task.assignedTo);
+      } else {
+        setAssignedTo('');
+      }
+      
       setTags(task.tags?.join(', ') || '');
       setBlocked(task.blocked || false);
       setBlockedReason(task.blockedReason || '');
       setReviewRequested(task.reviewRequested || false);
     }
-  }, [task]);
+  }, [task, projectMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,12 +116,14 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
             </Select>
           </FormField>
           <FormField label="Assigned To">
-            <Input
-              type="text"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              placeholder="User ID or email"
-            />
+            <Select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+              <option value="">Unassigned</option>
+              {projectMembers?.map((member) => (
+                <option key={member.id} value={member.email || member.id}>
+                  {member.displayName || member.email} {member.displayName ? `(${member.email})` : ''}
+                </option>
+              ))}
+            </Select>
           </FormField>
         </div>
         <div className="grid grid-cols-3 gap-4">

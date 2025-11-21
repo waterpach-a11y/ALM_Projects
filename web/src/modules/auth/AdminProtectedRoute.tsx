@@ -55,7 +55,7 @@ export const AdminProtectedRoute: React.FC<Props> = ({ children }) => {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h1>
           <p className="text-slate-600 mb-4">You need administrator privileges to access this page.</p>
-          <Navigate to="/app/backlog" replace />
+          <Navigate to="/app" replace />
         </div>
       </div>
     );

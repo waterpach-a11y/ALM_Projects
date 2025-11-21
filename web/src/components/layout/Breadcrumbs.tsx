@@ -86,19 +86,19 @@ export const Breadcrumbs: React.FC = () => {
             Project Dashboard
           </Link>
           <Link
-            to="/app/backlog"
+            to={`/app/project/${effectiveProjectId}/backlog`}
             className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-slate-50 text-slate-700 hover:bg-slate-100"
           >
             Backlog
           </Link>
           <Link
-            to="/app/bugs"
+            to={`/app/project/${effectiveProjectId}/bugs`}
             className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-slate-50 text-slate-700 hover:bg-slate-100"
           >
             Bugs
           </Link>
           <Link
-            to="/app/sprints"
+            to={`/app/project/${effectiveProjectId}/sprints`}
             className="px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium bg-slate-50 text-slate-700 hover:bg-slate-100"
           >
             Sprints

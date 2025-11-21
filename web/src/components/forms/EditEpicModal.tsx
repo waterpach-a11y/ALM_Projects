@@ -4,6 +4,7 @@ import { FormField, Input, Textarea, Select } from '../ui/FormField';
 import { Button } from '../ui/Button';
 import { Epic, useUpdateEpic } from '../../modules/backlog/useEpics';
 import { useAuth } from '../../modules/auth/AuthContext';
+import { useProjectMembers } from '../../modules/projects/useProjectMembers';
 
 interface EditEpicModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface EditEpicModalProps {
 export const EditEpicModal: React.FC<EditEpicModalProps> = ({ isOpen, onClose, epic, projectId }) => {
   const { user } = useAuth();
   const updateEpic = useUpdateEpic();
+  const { data: projectMembers } = useProjectMembers(projectId);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -33,7 +35,17 @@ export const EditEpicModal: React.FC<EditEpicModalProps> = ({ isOpen, onClose, e
       setStatus(epic.status || 'todo');
       setBusinessValue(epic.businessValue);
       setRiskLevel(epic.riskLevel);
-      setAssignedTo(epic.assignedTo || '');
+      
+      // Match assignedTo with project member (by email or ID)
+      if (epic.assignedTo && projectMembers) {
+        const member = projectMembers.find(
+          (m) => m.id === epic.assignedTo || m.email === epic.assignedTo
+        );
+        setAssignedTo(member ? (member.email || member.id) : epic.assignedTo);
+      } else {
+        setAssignedTo('');
+      }
+      
       if (epic.dueDate?.toDate) {
         const date = epic.dueDate.toDate() as Date;
         setDueDate(date.toISOString().slice(0, 10));
@@ -41,7 +53,7 @@ export const EditEpicModal: React.FC<EditEpicModalProps> = ({ isOpen, onClose, e
         setDueDate('');
       }
     }
-  }, [epic]);
+  }, [epic, projectMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,12 +141,14 @@ export const EditEpicModal: React.FC<EditEpicModalProps> = ({ isOpen, onClose, e
             />
           </FormField>
           <FormField label="Assigned To">
-            <Input
-              type="text"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              placeholder="User ID or email"
-            />
+            <Select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+              <option value="">Unassigned</option>
+              {projectMembers?.map((member) => (
+                <option key={member.id} value={member.email || member.id}>
+                  {member.displayName || member.email} {member.displayName ? `(${member.email})` : ''}
+                </option>
+              ))}
+            </Select>
           </FormField>
         </div>
         <div className="flex justify-end gap-3 pt-4">

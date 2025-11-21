@@ -39,9 +39,9 @@ const App: React.FC = () => {
           <Route path="projects/create" element={<CreateProjectPage />} />
           <Route path="profile" element={<UserProfilePage />} />
           <Route path="project/:id/dashboard" element={<DashboardPage />} />
-          <Route path="backlog" element={<BacklogPage />} />
-          <Route path="bugs" element={<BugsPage />} />
-          <Route path="sprints" element={<SprintsPage />} />
+          <Route path="project/:id/backlog" element={<BacklogPage />} />
+          <Route path="project/:id/bugs" element={<BugsPage />} />
+          <Route path="project/:id/sprints" element={<SprintsPage />} />
           <Route path="users" element={<AdminProtectedRoute><UsersManagementPage /></AdminProtectedRoute>} />
           <Route path="sync-roles" element={<SyncRolesPage />} />
           <Route path="project/:id" element={<ProjectPage />} />

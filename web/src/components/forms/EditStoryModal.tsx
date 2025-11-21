@@ -4,6 +4,7 @@ import { FormField, Input, Textarea, Select } from '../ui/FormField';
 import { Button } from '../ui/Button';
 import { Story, useUpdateStory } from '../../modules/backlog/useStories';
 import { useAuth } from '../../modules/auth/AuthContext';
+import { useProjectMembers } from '../../modules/projects/useProjectMembers';
 
 interface EditStoryModalProps {
   isOpen: boolean;
@@ -15,6 +16,7 @@ interface EditStoryModalProps {
 export const EditStoryModal: React.FC<EditStoryModalProps> = ({ isOpen, onClose, story, projectId }) => {
   const { user } = useAuth();
   const updateStory = useUpdateStory();
+  const { data: projectMembers } = useProjectMembers(projectId);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -35,10 +37,20 @@ export const EditStoryModal: React.FC<EditStoryModalProps> = ({ isOpen, onClose,
       setBusinessValue(story.businessValue);
       setComplexity(story.complexity);
       setSprintNumber(story.sprintNumber);
-      setAssignedTo(story.assignedTo || '');
+      
+      // Match assignedTo with project member (by email or ID)
+      if (story.assignedTo && projectMembers) {
+        const member = projectMembers.find(
+          (m) => m.id === story.assignedTo || m.email === story.assignedTo
+        );
+        setAssignedTo(member ? (member.email || member.id) : story.assignedTo);
+      } else {
+        setAssignedTo('');
+      }
+      
       setAcceptanceCriteria(story.acceptanceCriteria?.join('\n') || '');
     }
-  }, [story]);
+  }, [story, projectMembers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,12 +147,14 @@ export const EditStoryModal: React.FC<EditStoryModalProps> = ({ isOpen, onClose,
             />
           </FormField>
           <FormField label="Assigned To">
-            <Input
-              type="text"
-              value={assignedTo}
-              onChange={(e) => setAssignedTo(e.target.value)}
-              placeholder="User ID or email"
-            />
+            <Select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)}>
+              <option value="">Unassigned</option>
+              {projectMembers?.map((member) => (
+                <option key={member.id} value={member.email || member.id}>
+                  {member.displayName || member.email} {member.displayName ? `(${member.email})` : ''}
+                </option>
+              ))}
+            </Select>
           </FormField>
         </div>
         <FormField label="Acceptance Criteria (one per line)">

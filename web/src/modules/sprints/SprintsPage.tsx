@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useProjectStore } from '../projects/useProjectStore';
 import { useSprints, useCreateSprint, useUpdateSprint, useDeleteSprint } from './useSprints';
 import { Card } from '../../components/ui/Card';
@@ -15,9 +16,18 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const SprintsPage: React.FC = () => {
-  const { currentProjectId } = useProjectStore();
+  const { id: projectIdFromUrl } = useParams<{ id: string }>();
+  const { currentProjectId, setCurrentProjectId } = useProjectStore();
+  const projectId = projectIdFromUrl || currentProjectId;
   const { user } = useAuth();
-  const { data: sprints, isLoading } = useSprints(currentProjectId);
+  const { data: sprints, isLoading } = useSprints(projectId);
+
+  // Update store when projectId comes from URL
+  useEffect(() => {
+    if (projectIdFromUrl && projectIdFromUrl !== currentProjectId) {
+      setCurrentProjectId(projectIdFromUrl);
+    }
+  }, [projectIdFromUrl, currentProjectId, setCurrentProjectId]);
   const createSprint = useCreateSprint();
   const updateSprint = useUpdateSprint();
   const deleteSprint = useDeleteSprint();
@@ -33,9 +43,9 @@ const SprintsPage: React.FC = () => {
 
   const handleCreateSprint = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentProjectId || !name.trim()) return;
+    if (!projectId || !name.trim()) return;
     await createSprint.mutateAsync({
-      projectId: currentProjectId,
+      projectId: projectId,
       name: name.trim(),
       goal: goal.trim() || undefined,
       startDate: startDate ? new Date(startDate) : undefined,
@@ -50,7 +60,7 @@ const SprintsPage: React.FC = () => {
     setStatus('planned');
   };
 
-  if (!currentProjectId) {
+  if (!projectId) {
     return (
       <Card>
         <div className="text-center py-12">
@@ -222,20 +232,20 @@ const SprintsPage: React.FC = () => {
         </form>
       </Modal>
 
-          {currentProjectId && (
+          {projectId && (
             <>
               <EditSprintModal
                 isOpen={!!editingSprint}
                 onClose={() => setEditingSprint(null)}
                 sprint={editingSprint}
-                projectId={currentProjectId}
+                projectId={projectId}
               />
               <ConfirmDialog
                 isOpen={!!deletingSprintId}
                 onClose={() => setDeletingSprintId(null)}
                 onConfirm={async () => {
-                  if (deletingSprintId && currentProjectId) {
-                    await deleteSprint.mutateAsync({ projectId: currentProjectId, sprintId: deletingSprintId });
+                  if (deletingSprintId && projectId) {
+                    await deleteSprint.mutateAsync({ projectId: projectId, sprintId: deletingSprintId });
                     setDeletingSprintId(null);
                   }
                 }}

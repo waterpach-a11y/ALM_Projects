@@ -1,4 +1,5 @@
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useProjectStore } from '../projects/useProjectStore';
 import { useEpics, useCreateEpic, useUpdateEpic, useDeleteEpic } from './useEpics';
 import { useStories, useCreateStory, useUpdateStory, useDeleteStory } from './useStories';
@@ -34,7 +35,16 @@ const PRIORITY_COLORS: Record<string, string> = {
 };
 
 const BacklogPage: React.FC = () => {
-  const { currentProjectId } = useProjectStore();
+  const { id: projectIdFromUrl } = useParams<{ id: string }>();
+  const { currentProjectId, setCurrentProjectId } = useProjectStore();
+  const projectId = projectIdFromUrl || currentProjectId;
+
+  // Update store when projectId comes from URL
+  useEffect(() => {
+    if (projectIdFromUrl && projectIdFromUrl !== currentProjectId) {
+      setCurrentProjectId(projectIdFromUrl);
+    }
+  }, [projectIdFromUrl, currentProjectId, setCurrentProjectId]);
 
   const [selectedEpicId, setSelectedEpicId] = useState<string | null>(null);
   const [selectedStoryId, setSelectedStoryId] = useState<string | null>(null);
@@ -47,10 +57,10 @@ const BacklogPage: React.FC = () => {
   const [newReqDescription, setNewReqDescription] = useState('');
   const [newReqAcceptance, setNewReqAcceptance] = useState('');
 
-  const { data: epics, isLoading: epicsLoading } = useEpics(currentProjectId ?? null);
-  const { data: stories, isLoading: storiesLoading } = useStories(currentProjectId ?? null, selectedEpicId);
-  const { data: tasks, isLoading: tasksLoading } = useTasks(currentProjectId ?? null, selectedStoryId);
-  const { data: requirements } = useRequirements(currentProjectId ?? null, selectedTaskId);
+  const { data: epics, isLoading: epicsLoading } = useEpics(projectId ?? null);
+  const { data: stories, isLoading: storiesLoading } = useStories(projectId ?? null, selectedEpicId);
+  const { data: tasks, isLoading: tasksLoading } = useTasks(projectId ?? null, selectedStoryId);
+  const { data: requirements } = useRequirements(projectId ?? null, selectedTaskId);
 
   const createEpic = useCreateEpic();
   const createStory = useCreateStory();
@@ -78,13 +88,13 @@ const BacklogPage: React.FC = () => {
 
   const handleCreateEpic = async (e: FormEvent) => {
     e.preventDefault();
-    if (!currentProjectId || !newEpicTitle.trim()) return;
-    await createEpic.mutateAsync({ projectId: currentProjectId, title: newEpicTitle.trim() });
+    if (!projectId || !newEpicTitle.trim()) return;
+    await createEpic.mutateAsync({ projectId: projectId, title: newEpicTitle.trim() });
     setNewEpicTitle('');
   };
 
   const handleStoryDragEnd = async (result: DropResult) => {
-    if (!currentProjectId || !stories) return;
+    if (!projectId || !stories) return;
     const { destination, source, draggableId } = result;
 
     if (!destination) return;
@@ -100,7 +110,7 @@ const BacklogPage: React.FC = () => {
     if (!story || story.status === newStatus) return;
 
     await updateStory.mutateAsync({
-      projectId: currentProjectId,
+      projectId: projectId,
       storyId: story.id,
       updates: { status: newStatus },
     });
@@ -108,27 +118,27 @@ const BacklogPage: React.FC = () => {
 
   const handleCreateStory = async (e: FormEvent) => {
     e.preventDefault();
-    if (!currentProjectId || !selectedEpicId || !newStoryTitle.trim()) return;
-    await createStory.mutateAsync({ projectId: currentProjectId, epicId: selectedEpicId, title: newStoryTitle.trim() });
+    if (!projectId || !selectedEpicId || !newStoryTitle.trim()) return;
+    await createStory.mutateAsync({ projectId: projectId, epicId: selectedEpicId, title: newStoryTitle.trim() });
     setNewStoryTitle('');
   };
 
   const handleCreateTask = async (e: FormEvent) => {
     e.preventDefault();
-    if (!currentProjectId || !selectedStoryId || !newTaskTitle.trim()) return;
-    await createTask.mutateAsync({ projectId: currentProjectId, storyId: selectedStoryId, title: newTaskTitle.trim() });
+    if (!projectId || !selectedStoryId || !newTaskTitle.trim()) return;
+    await createTask.mutateAsync({ projectId: projectId, storyId: selectedStoryId, title: newTaskTitle.trim() });
     setNewTaskTitle('');
   };
 
   const handleCreateRequirement = async (e: FormEvent) => {
     e.preventDefault();
-    if (!currentProjectId || !selectedTaskId || !newReqTitle.trim()) return;
+    if (!projectId || !selectedTaskId || !newReqTitle.trim()) return;
     const acceptanceCriteria = newReqAcceptance
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
     await createRequirement.mutateAsync({
-      projectId: currentProjectId,
+      projectId: projectId,
       taskId: selectedTaskId,
       title: newReqTitle.trim(),
       description: newReqDescription.trim() || undefined,
@@ -140,7 +150,7 @@ const BacklogPage: React.FC = () => {
     setNewReqAcceptance('');
   };
 
-  if (!currentProjectId) {
+  if (!projectId) {
     return (
       <Card>
         <div className="text-center py-12">
@@ -640,42 +650,42 @@ const BacklogPage: React.FC = () => {
       )}
 
       {/* Edit Modals */}
-      {currentProjectId && (
+      {projectId && (
         <>
           <EditEpicModal
             isOpen={!!editingEpic}
             onClose={() => setEditingEpic(null)}
             epic={editingEpic}
-            projectId={currentProjectId}
+            projectId={projectId}
           />
           <EditStoryModal
             isOpen={!!editingStory}
             onClose={() => setEditingStory(null)}
             story={editingStory}
-            projectId={currentProjectId}
+            projectId={projectId}
           />
           <EditTaskModal
             isOpen={!!editingTask}
             onClose={() => setEditingTask(null)}
             task={editingTask}
-            projectId={currentProjectId}
+            projectId={projectId}
           />
           <EditRequirementModal
             isOpen={!!editingRequirement}
             onClose={() => setEditingRequirement(null)}
             requirement={editingRequirement}
-            projectId={currentProjectId}
+            projectId={projectId}
           />
 
           {/* Delete Confirmation Dialogs */}
-          {currentProjectId && (
+          {projectId && (
             <>
               <ConfirmDialog
                 isOpen={!!deletingEpicId}
                 onClose={() => setDeletingEpicId(null)}
                 onConfirm={async () => {
-                  if (deletingEpicId && currentProjectId) {
-                    await deleteEpic.mutateAsync({ projectId: currentProjectId, epicId: deletingEpicId });
+                  if (deletingEpicId && projectId) {
+                    await deleteEpic.mutateAsync({ projectId: projectId, epicId: deletingEpicId });
                     setDeletingEpicId(null);
                     if (selectedEpicId === deletingEpicId) {
                       setSelectedEpicId(null);
@@ -694,8 +704,8 @@ const BacklogPage: React.FC = () => {
                 isOpen={!!deletingStoryId}
                 onClose={() => setDeletingStoryId(null)}
                 onConfirm={async () => {
-                  if (deletingStoryId && currentProjectId) {
-                    await deleteStory.mutateAsync({ projectId: currentProjectId, storyId: deletingStoryId });
+                  if (deletingStoryId && projectId) {
+                    await deleteStory.mutateAsync({ projectId: projectId, storyId: deletingStoryId });
                     setDeletingStoryId(null);
                     if (selectedStoryId === deletingStoryId) {
                       setSelectedStoryId(null);
@@ -713,8 +723,8 @@ const BacklogPage: React.FC = () => {
                 isOpen={!!deletingTaskId}
                 onClose={() => setDeletingTaskId(null)}
                 onConfirm={async () => {
-                  if (deletingTaskId && currentProjectId) {
-                    await deleteTask.mutateAsync({ projectId: currentProjectId, taskId: deletingTaskId });
+                  if (deletingTaskId && projectId) {
+                    await deleteTask.mutateAsync({ projectId: projectId, taskId: deletingTaskId });
                     setDeletingTaskId(null);
                     if (selectedTaskId === deletingTaskId) {
                       setSelectedTaskId(null);
@@ -731,8 +741,8 @@ const BacklogPage: React.FC = () => {
                 isOpen={!!deletingRequirementId}
                 onClose={() => setDeletingRequirementId(null)}
                 onConfirm={async () => {
-                  if (deletingRequirementId && currentProjectId) {
-                    await deleteRequirement.mutateAsync({ projectId: currentProjectId, requirementId: deletingRequirementId });
+                  if (deletingRequirementId && projectId) {
+                    await deleteRequirement.mutateAsync({ projectId: projectId, requirementId: deletingRequirementId });
                     setDeletingRequirementId(null);
                   }
                 }}
