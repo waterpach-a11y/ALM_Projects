@@ -1,9 +1,9 @@
 import React, { useState, FormEvent } from 'react';
 import { useProjectStore } from '../projects/useProjectStore';
-import { useEpics, useCreateEpic, useUpdateEpic } from './useEpics';
-import { useStories, useCreateStory, useUpdateStory } from './useStories';
-import { useTasks, useCreateTask, useUpdateTask } from './useTasks';
-import { useRequirements, useCreateRequirement } from './useRequirements';
+import { useEpics, useCreateEpic, useUpdateEpic, useDeleteEpic } from './useEpics';
+import { useStories, useCreateStory, useUpdateStory, useDeleteStory } from './useStories';
+import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from './useTasks';
+import { useRequirements, useCreateRequirement, useDeleteRequirement } from './useRequirements';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -18,6 +18,7 @@ import { EditTaskModal } from '../../components/forms/EditTaskModal';
 import { EditRequirementModal } from '../../components/forms/EditRequirementModal';
 import { useUpdateRequirement } from './useRequirements';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 const STATUS_COLORS: Record<string, string> = {
   todo: 'bg-slate-100 text-slate-700',
@@ -59,11 +60,21 @@ const BacklogPage: React.FC = () => {
   const updateStory = useUpdateStory();
   const updateTask = useUpdateTask();
   const updateRequirement = useUpdateRequirement();
+  const deleteEpic = useDeleteEpic();
+  const deleteStory = useDeleteStory();
+  const deleteTask = useDeleteTask();
+  const deleteRequirement = useDeleteRequirement();
 
   const [editingEpic, setEditingEpic] = useState<Epic | null>(null);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingRequirement, setEditingRequirement] = useState<Requirement | null>(null);
+
+  // Delete confirmation states
+  const [deletingEpicId, setDeletingEpicId] = useState<string | null>(null);
+  const [deletingStoryId, setDeletingStoryId] = useState<string | null>(null);
+  const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+  const [deletingRequirementId, setDeletingRequirementId] = useState<string | null>(null);
 
   const handleCreateEpic = async (e: FormEvent) => {
     e.preventDefault();
@@ -173,33 +184,49 @@ const BacklogPage: React.FC = () => {
                     isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : 'border-slate-300 shadow-md'
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div
-                      className="flex-1 cursor-pointer"
-                      onClick={() => {
-                        setSelectedEpicId(epic.id);
-                        setSelectedStoryId(null);
-                        setSelectedTaskId(null);
-                      }}
-                    >
-                      <h3 className="font-semibold text-slate-900">{epic.title}</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={epic.priority === 'high' ? 'error' : epic.priority === 'medium' ? 'warning' : 'success'}>
-                        {epic.priority}
-                      </Badge>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingEpic(epic);
+                  <div className="relative mb-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div
+                        className="flex-1 cursor-pointer pr-8"
+                        onClick={() => {
+                          setSelectedEpicId(epic.id);
+                          setSelectedStoryId(null);
+                          setSelectedTaskId(null);
                         }}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                        title="Edit epic"
                       >
-                        <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                      </button>
+                        <h3 className="font-semibold text-slate-900 mb-2">{epic.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={epic.priority === 'high' ? 'error' : epic.priority === 'medium' ? 'warning' : 'success'}>
+                            {epic.priority}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 absolute top-0 right-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingEpic(epic);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                          title="Edit epic"
+                        >
+                          <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingEpicId(epic.id);
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                          title="Delete epic"
+                        >
+                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -326,18 +353,32 @@ const BacklogPage: React.FC = () => {
                                                 {story.title}
                                               </h4>
                                             </div>
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingStory(story);
-                                              }}
-                                              className="p-1 rounded hover:bg-slate-100 transition-colors ml-1"
-                                              title="Edit story"
-                                            >
-                                              <svg className="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                              </svg>
-                                            </button>
+                                            <div className="flex items-center gap-1">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingStory(story);
+                                                }}
+                                                className="p-1 rounded hover:bg-slate-100 transition-colors"
+                                                title="Edit story"
+                                              >
+                                                <svg className="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setDeletingStoryId(story.id);
+                                                }}
+                                                className="p-1 rounded hover:bg-red-50 transition-colors"
+                                                title="Delete story"
+                                              >
+                                                <svg className="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                              </button>
+                                            </div>
                                           </div>
                                           <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
                                             <span className="font-medium">{story.storyPoints} pts</span>
@@ -416,18 +457,32 @@ const BacklogPage: React.FC = () => {
                           <Badge variant={task.status === 'done' ? 'success' : task.status === 'in_progress' ? 'info' : 'default'} size="sm">
                             {task.status}
                           </Badge>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingTask(task);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                            title="Edit task"
-                          >
-                            <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingTask(task);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                              title="Edit task"
+                            >
+                              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingTaskId(task.id);
+                              }}
+                              className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                              title="Delete task"
+                            >
+                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 text-sm text-slate-500 flex-wrap">
@@ -488,15 +543,26 @@ const BacklogPage: React.FC = () => {
                 <Card key={req.id} hover className="border-2 border-slate-300 shadow-md">
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-slate-900 flex-1">{req.title}</h4>
-                    <button
-                      onClick={() => setEditingRequirement(req)}
-                      className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                      title="Edit requirement"
-                    >
-                      <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setEditingRequirement(req)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                        title="Edit requirement"
+                      >
+                        <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => setDeletingRequirementId(req.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Delete requirement"
+                      >
+                        <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                   {req.description && <p className="text-sm text-slate-600 mb-2">{req.description}</p>}
                   {req.acceptanceCriteria && req.acceptanceCriteria.length > 0 && (
@@ -600,6 +666,84 @@ const BacklogPage: React.FC = () => {
             requirement={editingRequirement}
             projectId={currentProjectId}
           />
+
+          {/* Delete Confirmation Dialogs */}
+          {currentProjectId && (
+            <>
+              <ConfirmDialog
+                isOpen={!!deletingEpicId}
+                onClose={() => setDeletingEpicId(null)}
+                onConfirm={async () => {
+                  if (deletingEpicId && currentProjectId) {
+                    await deleteEpic.mutateAsync({ projectId: currentProjectId, epicId: deletingEpicId });
+                    setDeletingEpicId(null);
+                    if (selectedEpicId === deletingEpicId) {
+                      setSelectedEpicId(null);
+                      setSelectedStoryId(null);
+                      setSelectedTaskId(null);
+                    }
+                  }
+                }}
+                title="Delete Epic"
+                message="Are you sure you want to delete this epic? This will also delete all associated stories, tasks, and requirements. This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+                isLoading={deleteEpic.isPending}
+              />
+              <ConfirmDialog
+                isOpen={!!deletingStoryId}
+                onClose={() => setDeletingStoryId(null)}
+                onConfirm={async () => {
+                  if (deletingStoryId && currentProjectId) {
+                    await deleteStory.mutateAsync({ projectId: currentProjectId, storyId: deletingStoryId });
+                    setDeletingStoryId(null);
+                    if (selectedStoryId === deletingStoryId) {
+                      setSelectedStoryId(null);
+                      setSelectedTaskId(null);
+                    }
+                  }
+                }}
+                title="Delete Story"
+                message="Are you sure you want to delete this story? This will also delete all associated tasks and requirements. This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+                isLoading={deleteStory.isPending}
+              />
+              <ConfirmDialog
+                isOpen={!!deletingTaskId}
+                onClose={() => setDeletingTaskId(null)}
+                onConfirm={async () => {
+                  if (deletingTaskId && currentProjectId) {
+                    await deleteTask.mutateAsync({ projectId: currentProjectId, taskId: deletingTaskId });
+                    setDeletingTaskId(null);
+                    if (selectedTaskId === deletingTaskId) {
+                      setSelectedTaskId(null);
+                    }
+                  }
+                }}
+                title="Delete Task"
+                message="Are you sure you want to delete this task? This will also delete all associated requirements. This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+                isLoading={deleteTask.isPending}
+              />
+              <ConfirmDialog
+                isOpen={!!deletingRequirementId}
+                onClose={() => setDeletingRequirementId(null)}
+                onConfirm={async () => {
+                  if (deletingRequirementId && currentProjectId) {
+                    await deleteRequirement.mutateAsync({ projectId: currentProjectId, requirementId: deletingRequirementId });
+                    setDeletingRequirementId(null);
+                  }
+                }}
+                title="Delete Requirement"
+                message="Are you sure you want to delete this requirement? This action cannot be undone."
+                confirmText="Delete"
+                variant="danger"
+                isLoading={deleteRequirement.isPending}
+              />
+            </>
+          )}
         </>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addDoc, collection, doc, getDocs, Timestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export interface Sprint {
@@ -122,6 +122,25 @@ export const useUpdateSprint = () => {
         updateData.endDate = updates.endDate ? Timestamp.fromDate(updates.endDate) : null;
       }
       await updateDoc(ref, updateData);
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });
+    },
+  });
+};
+
+interface DeleteSprintInput {
+  projectId: string;
+  sprintId: string;
+}
+
+export const useDeleteSprint = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, sprintId }: DeleteSprintInput) => {
+      const ref = doc(db, 'projects', projectId, 'sprints', sprintId);
+      await deleteDoc(ref);
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['sprints', projectId] });

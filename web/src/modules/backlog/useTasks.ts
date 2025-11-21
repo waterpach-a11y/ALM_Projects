@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addDoc, collection, doc, getDocs, query, where, Timestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, where, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export interface Task {
@@ -136,6 +136,26 @@ export const useUpdateTask = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+  });
+};
+
+interface DeleteTaskInput {
+  projectId: string;
+  taskId: string;
+}
+
+export const useDeleteTask = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, taskId }: DeleteTaskInput) => {
+      const ref = doc(db, 'projects', projectId, 'tasks', taskId);
+      await deleteDoc(ref);
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['requirements', projectId] });
     },
   });
 };

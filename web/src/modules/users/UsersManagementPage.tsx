@@ -5,6 +5,8 @@ import { useCreateUser, useInviteUser } from './useCreateUser';
 import { useMakeAdmin } from './useMakeAdmin';
 import { useSyncUserRoles, useSyncAllAdminRoles } from './useSyncRoles';
 import { useImportExistingUser } from './useImportExistingUser';
+import { useDeleteUser } from './useDeleteUser';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
@@ -28,6 +30,7 @@ const UsersManagementPage: React.FC = () => {
   const syncUserRoles = useSyncUserRoles();
   const syncAllAdminRoles = useSyncAllAdminRoles();
   const importExistingUser = useImportExistingUser();
+  const deleteUser = useDeleteUser();
 
   const [editingUser, setEditingUser] = useState<{ id: string; roles: string[] } | null>(null);
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
@@ -49,6 +52,7 @@ const UsersManagementPage: React.FC = () => {
   const [inviteResult, setInviteResult] = useState<{ email: string; tempPassword: string } | null>(null);
   const [importEmail, setImportEmail] = useState('');
   const [importRoles, setImportRoles] = useState<string[]>(['user']);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const autoSyncedRef = React.useRef(false);
 
@@ -393,6 +397,17 @@ const UsersManagementPage: React.FC = () => {
                                 >
                                   Edit Roles
                                 </Button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => setDeletingUserId(user.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                    title="Delete user"
+                                  >
+                                    <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                )}
                               </>
                             )}
                             {user.id === currentUser?.uid && (
@@ -740,6 +755,23 @@ const UsersManagementPage: React.FC = () => {
           </form>
         )}
       </Modal>
+
+      {/* Delete User Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={!!deletingUserId}
+        onClose={() => setDeletingUserId(null)}
+        onConfirm={async () => {
+          if (deletingUserId) {
+            await deleteUser.mutateAsync({ userId: deletingUserId });
+            setDeletingUserId(null);
+          }
+        }}
+        title="Delete User"
+        message={`Are you sure you want to delete this user? This will remove their Firestore document. Note: This does not delete the Firebase Auth account. This action cannot be undone.`}
+        confirmText="Delete"
+        variant="danger"
+        isLoading={deleteUser.isPending}
+      />
     </div>
   );
 };

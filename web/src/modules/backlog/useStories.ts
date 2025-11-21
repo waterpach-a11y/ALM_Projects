@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addDoc, collection, doc, getDocs, query, where, Timestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, query, where, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export interface Story {
@@ -120,6 +120,26 @@ export const useUpdateStory = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['stories', projectId] });
+    },
+  });
+};
+
+interface DeleteStoryInput {
+  projectId: string;
+  storyId: string;
+}
+
+export const useDeleteStory = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, storyId }: DeleteStoryInput) => {
+      const ref = doc(db, 'projects', projectId, 'stories', storyId);
+      await deleteDoc(ref);
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['stories', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
     },
   });
 };

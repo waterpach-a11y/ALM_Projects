@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { addDoc, collection, doc, getDocs, Timestamp, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
 export interface Epic {
@@ -113,6 +113,26 @@ export const useUpdateEpic = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['epics', projectId] });
+    },
+  });
+};
+
+interface DeleteEpicInput {
+  projectId: string;
+  epicId: string;
+}
+
+export const useDeleteEpic = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ projectId, epicId }: DeleteEpicInput) => {
+      const ref = doc(db, 'projects', projectId, 'epics', epicId);
+      await deleteDoc(ref);
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({ queryKey: ['epics', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['stories', projectId] });
     },
   });
 };
