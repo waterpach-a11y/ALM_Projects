@@ -29,6 +29,7 @@ import { SectionTitle } from '../../components/ui/SectionTitle';
 import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } from '../../components/ui/Table';
 import { useTraceability } from './useTraceability';
 import { TraceabilityTable } from '../../components/traceability/TraceabilityTable';
+import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 
 const STATUS_COLORS: Record<string, string> = {
   todo: '#94a3b8',
@@ -139,9 +140,41 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      <div className="mb-2">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Project Dashboard</h1>
-        <p className="text-slate-600 font-medium">Comprehensive overview and real-time metrics</p>
+        <p className="text-slate-600 font-medium mb-4">Comprehensive overview and real-time metrics</p>
+        
+        {/* Global Project Health Indicator */}
+        {data && (
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-md">
+              <div className={`w-3 h-3 rounded-full ${
+                completionRate >= 80 ? 'bg-emerald-500' : completionRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
+              } animate-pulse`}></div>
+              <span className="text-sm font-semibold text-slate-700">Overall Health</span>
+              <Badge variant={completionRate >= 80 ? 'success' : completionRate >= 50 ? 'warning' : 'error'} size="sm">
+                {completionRate >= 80 ? '✓ Excellent' : completionRate >= 50 ? '⚠ Good' : '⚠ Needs Attention'}
+              </Badge>
+              <span className="text-sm font-bold text-slate-900 ml-2">{completionRate}%</span>
+            </div>
+            {blockedTasksCount > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <span className="text-sm font-semibold text-red-700">{blockedTasksCount} Blocked Task{blockedTasksCount > 1 ? 's' : ''}</span>
+              </div>
+            )}
+            {verifiedRequirementsCount > 0 && (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-2 border-emerald-300 rounded-xl shadow-md">
+                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-semibold text-emerald-700">{verifiedRequirementsCount} Verified Requirement{verifiedRequirementsCount > 1 ? 's' : ''}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* KPI Cards - 3x3 Grid */}
@@ -437,9 +470,9 @@ const DashboardPage: React.FC = () => {
           </div>
 
           {/* Epics → Stories (Aggregated) */}
-          <Card>
+          <Card className="bg-gradient-to-br from-white to-slate-50/30">
             <SectionTitle>Epics → Stories Traceability</SectionTitle>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-6 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableHeaderCell>Epic</TableHeaderCell>
@@ -448,6 +481,8 @@ const DashboardPage: React.FC = () => {
                   <TableHeaderCell align="right">In Progress</TableHeaderCell>
                   <TableHeaderCell align="right">Review</TableHeaderCell>
                   <TableHeaderCell align="right">Done</TableHeaderCell>
+                  <TableHeaderCell>Progress</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {traceabilityData.epics.map((epic) => {
@@ -458,19 +493,86 @@ const DashboardPage: React.FC = () => {
                       review: relatedStories.filter((s) => s.status === 'review').length,
                       done: relatedStories.filter((s) => s.status === 'done').length,
                     };
+                    const total = relatedStories.length;
+                    const completed = counts.done;
+                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+                    // Vérifier si en retard (dueDate dépassée)
+                    const isOverdue = epic.dueDate?.toDate && epic.dueDate.toDate() < new Date() && percentage < 100;
+                    const rowBgColor = isOverdue
+                      ? 'bg-red-50/30 border-red-200'
+                      : percentage === 100
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : percentage >= 80
+                      ? 'bg-green-50/30 border-green-200'
+                      : percentage >= 50
+                      ? 'bg-amber-50/30 border-amber-200'
+                      : '';
 
                     return (
-                      <TableRow key={epic.id} hover>
+                      <TableRow key={epic.id} hover className={rowBgColor}>
                         <TableCell>
-                          <div className="font-medium text-slate-900">{epic.title}</div>
+                          <div className="flex items-center gap-2">
+                            {isOverdue && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900">{epic.title}</div>
+                              {epic.dueDate?.toDate && (
+                                <div className="text-xs text-slate-500 mt-0.5">
+                                  Due: {epic.dueDate.toDate().toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell align="right">
-                          <span className="font-semibold">{relatedStories.length}</span>
+                          <span className="font-bold text-slate-900">{total}</span>
                         </TableCell>
-                        <TableCell align="right">{counts.todo}</TableCell>
-                        <TableCell align="right">{counts.in_progress}</TableCell>
-                        <TableCell align="right">{counts.review}</TableCell>
-                        <TableCell align="right">{counts.done}</TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.todo > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {counts.todo}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {counts.in_progress}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.review > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {counts.review}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${counts.done > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {counts.done}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <ProgressIndicator
+                            percentage={percentage}
+                            total={total}
+                            completed={completed}
+                            size="sm"
+                            showBadge={false}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {isOverdue ? (
+                            <Badge variant="error" size="sm">Overdue</Badge>
+                          ) : percentage === 100 ? (
+                            <Badge variant="success" size="sm">✓ Complete</Badge>
+                          ) : percentage >= 80 ? (
+                            <Badge variant="success" size="sm">On Track</Badge>
+                          ) : percentage >= 50 ? (
+                            <Badge variant="warning" size="sm">In Progress</Badge>
+                          ) : (
+                            <Badge variant="default" size="sm">Started</Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -480,9 +582,9 @@ const DashboardPage: React.FC = () => {
           </Card>
 
           {/* Stories → Tasks (Aggregated) */}
-          <Card>
+          <Card className="bg-gradient-to-br from-white to-slate-50/30">
             <SectionTitle>Stories → Tasks Traceability</SectionTitle>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-6 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableHeaderCell>Story</TableHeaderCell>
@@ -491,6 +593,8 @@ const DashboardPage: React.FC = () => {
                   <TableHeaderCell align="right">In Progress</TableHeaderCell>
                   <TableHeaderCell align="right">Review</TableHeaderCell>
                   <TableHeaderCell align="right">Done</TableHeaderCell>
+                  <TableHeaderCell>Progress</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {traceabilityData.stories.map((story) => {
@@ -500,20 +604,85 @@ const DashboardPage: React.FC = () => {
                       in_progress: relatedTasks.filter((t) => t.status === 'in_progress').length,
                       review: relatedTasks.filter((t) => t.status === 'review').length,
                       done: relatedTasks.filter((t) => t.status === 'done').length,
+                      blocked: relatedTasks.filter((t) => t.blocked).length,
                     };
+                    const total = relatedTasks.length;
+                    const completed = counts.done;
+                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const hasBlocked = counts.blocked > 0;
+
+                    const rowBgColor = hasBlocked
+                      ? 'bg-red-50/30 border-red-200'
+                      : percentage === 100
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : percentage >= 80
+                      ? 'bg-green-50/30 border-green-200'
+                      : percentage >= 50
+                      ? 'bg-amber-50/30 border-amber-200'
+                      : '';
 
                     return (
-                      <TableRow key={story.id} hover>
+                      <TableRow key={story.id} hover className={rowBgColor}>
                         <TableCell>
-                          <div className="font-medium text-slate-900">{story.title}</div>
+                          <div className="flex items-center gap-2">
+                            {hasBlocked && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900">{story.title}</div>
+                              {story.storyPoints && (
+                                <div className="text-xs text-slate-500 mt-0.5">{story.storyPoints} pts</div>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell align="right">
-                          <span className="font-semibold">{relatedTasks.length}</span>
+                          <span className="font-bold text-slate-900">{total}</span>
                         </TableCell>
-                        <TableCell align="right">{counts.todo}</TableCell>
-                        <TableCell align="right">{counts.in_progress}</TableCell>
-                        <TableCell align="right">{counts.review}</TableCell>
-                        <TableCell align="right">{counts.done}</TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.todo > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {counts.todo}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {counts.in_progress}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.review > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {counts.review}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${counts.done > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {counts.done}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <ProgressIndicator
+                            percentage={percentage}
+                            total={total}
+                            completed={completed}
+                            size="sm"
+                            showBadge={false}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {hasBlocked ? (
+                            <Badge variant="error" size="sm">⚠ Blocked</Badge>
+                          ) : percentage === 100 ? (
+                            <Badge variant="success" size="sm">✓ Complete</Badge>
+                          ) : percentage >= 80 ? (
+                            <Badge variant="success" size="sm">On Track</Badge>
+                          ) : percentage >= 50 ? (
+                            <Badge variant="warning" size="sm">In Progress</Badge>
+                          ) : (
+                            <Badge variant="default" size="sm">Started</Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
@@ -523,32 +692,89 @@ const DashboardPage: React.FC = () => {
           </Card>
 
           {/* Tasks → Requirements (Aggregated) */}
-          <Card>
+          <Card className="bg-gradient-to-br from-white to-slate-50/30">
             <SectionTitle>Tasks → Requirements Traceability</SectionTitle>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-6 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableHeaderCell>Task</TableHeaderCell>
                   <TableHeaderCell align="right">Requirements Count</TableHeaderCell>
                   <TableHeaderCell align="right">Pending</TableHeaderCell>
                   <TableHeaderCell align="right">Verified</TableHeaderCell>
+                  <TableHeaderCell>Progress</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
                   {traceabilityData.tasks.map((task) => {
                     const relatedReqs = traceabilityData.requirements.filter((r) => r.taskId === task.id);
                     const pendingCount = relatedReqs.filter((r) => !r.verified).length;
                     const verifiedCount = relatedReqs.filter((r) => r.verified).length;
+                    const total = relatedReqs.length;
+                    const percentage = total > 0 ? Math.round((verifiedCount / total) * 100) : 0;
+                    const isBlocked = task.blocked;
+
+                    const rowBgColor = isBlocked
+                      ? 'bg-red-50/30 border-red-200'
+                      : percentage === 100
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : percentage >= 80
+                      ? 'bg-green-50/30 border-green-200'
+                      : percentage >= 50
+                      ? 'bg-amber-50/30 border-amber-200'
+                      : '';
 
                     return (
-                      <TableRow key={task.id} hover>
+                      <TableRow key={task.id} hover className={rowBgColor}>
                         <TableCell>
-                          <div className="font-medium text-slate-900">{task.title}</div>
+                          <div className="flex items-center gap-2">
+                            {isBlocked && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900">{task.title}</div>
+                              {task.estimatedHours && (
+                                <div className="text-xs text-slate-500 mt-0.5">{task.estimatedHours}h estimated</div>
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell align="right">
-                          <span className="font-semibold">{relatedReqs.length}</span>
+                          <span className="font-bold text-slate-900">{total}</span>
                         </TableCell>
-                        <TableCell align="right">{pendingCount}</TableCell>
-                        <TableCell align="right">{verifiedCount}</TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${pendingCount > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {pendingCount}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${verifiedCount > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {verifiedCount}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <ProgressIndicator
+                            percentage={percentage}
+                            total={total}
+                            completed={verifiedCount}
+                            size="sm"
+                            showBadge={false}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {isBlocked ? (
+                            <Badge variant="error" size="sm">⚠ Blocked</Badge>
+                          ) : percentage === 100 ? (
+                            <Badge variant="success" size="sm">✓ Verified</Badge>
+                          ) : percentage >= 80 ? (
+                            <Badge variant="success" size="sm">On Track</Badge>
+                          ) : percentage >= 50 ? (
+                            <Badge variant="warning" size="sm">In Progress</Badge>
+                          ) : (
+                            <Badge variant="default" size="sm">Started</Badge>
+                          )}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
