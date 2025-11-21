@@ -17,6 +17,7 @@ import SprintsPage from '../sprints/SprintsPage';
 import UsersManagementPage from '../users/UsersManagementPage';
 import SyncRolesPage from '../users/SyncRolesPage';
 import UserProfilePage from '../users/UserProfilePage';
+import HelpPage from '../help/HelpPage';
 
 const App: React.FC = () => {
   return (
@@ -44,6 +45,7 @@ const App: React.FC = () => {
           <Route path="project/:id/sprints" element={<SprintsPage />} />
           <Route path="users" element={<AdminProtectedRoute><UsersManagementPage /></AdminProtectedRoute>} />
           <Route path="sync-roles" element={<SyncRolesPage />} />
+          <Route path="help" element={<HelpPage />} />
           <Route path="project/:id" element={<ProjectPage />} />
         </Route>
 
