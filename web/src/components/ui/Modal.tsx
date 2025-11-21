@@ -24,9 +24,9 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
 
-        <div className={`inline-block align-bottom bg-white/95 backdrop-blur-xl rounded-2xl text-left overflow-hidden shadow-large transform transition-all duration-300 sm:my-8 sm:align-middle w-full animate-scale-in ${sizeClasses[size]}`}>
+        <div className={`inline-block align-bottom bg-white/95 backdrop-blur-xl rounded-2xl text-left overflow-hidden shadow-large border-2 border-slate-300 transform transition-all duration-300 sm:my-8 sm:align-middle w-full animate-scale-in ${sizeClasses[size]}`}>
           <div className="bg-gradient-to-b from-white to-slate-50/50 px-6 pt-6 pb-5 sm:p-8">
-            <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b-2 border-slate-300">
               <h3 className="text-xl font-bold text-slate-900">{title}</h3>
               <button
                 onClick={onClose}

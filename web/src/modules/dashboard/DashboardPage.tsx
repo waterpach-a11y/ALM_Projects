@@ -2,6 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useProjectDashboard } from './useProjectDashboard';
 import { useProjectStore } from '../projects/useProjectStore';
+import { useUsers } from '../users/useUsers';
 import {
   BarChart,
   Bar,
@@ -48,6 +49,7 @@ const DashboardPage: React.FC = () => {
   const projectId = projectIdFromUrl || currentProjectId;
   const { data, isLoading, error } = useProjectDashboard(projectId);
   const { data: traceabilityData, isLoading: traceabilityLoading } = useTraceability(projectId);
+  const { data: users } = useUsers();
 
   if (!projectId) {
     return (
@@ -120,6 +122,21 @@ const DashboardPage: React.FC = () => {
 
   const storiesProgress = storiesTotal > 0 ? Math.round((storiesDone / storiesTotal) * 100) : 0;
 
+  const usersById = React.useMemo(() => {
+    const map = new Map<string, string>();
+    if (users) {
+      for (const u of users) {
+        map.set(u.id, u.displayName || u.email || u.id);
+      }
+    }
+    return map;
+  }, [users]);
+
+  const workloadWithLabels = workloadByDeveloper.map((w) => {
+    const label = usersById.get(w.userId) || w.userId || 'Unassigned';
+    return { ...w, label };
+  });
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="mb-2">
@@ -129,7 +146,7 @@ const DashboardPage: React.FC = () => {
 
       {/* KPI Cards - 3x3 Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card hover className="bg-gradient-to-br from-indigo-50/50 to-white border-indigo-100">
+        <Card hover className="bg-gradient-to-br from-indigo-50/50 to-white border-indigo-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Total Epics</p>
@@ -143,7 +160,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-emerald-50/50 to-white border-emerald-100">
+        <Card hover className="bg-gradient-to-br from-emerald-50/50 to-white border-emerald-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Total Stories</p>
@@ -157,7 +174,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-amber-50/50 to-white border-amber-100">
+        <Card hover className="bg-gradient-to-br from-amber-50/50 to-white border-amber-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Total Tasks</p>
@@ -186,7 +203,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-red-50/50 to-white border-red-100">
+        <Card hover className="bg-gradient-to-br from-red-50/50 to-white border-red-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Blocked Tasks</p>
@@ -200,7 +217,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-orange-50/50 to-white border-orange-100">
+        <Card hover className="bg-gradient-to-br from-orange-50/50 to-white border-orange-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Open Bugs</p>
@@ -214,7 +231,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-emerald-50/50 to-white border-emerald-100">
+        <Card hover className="bg-gradient-to-br from-emerald-50/50 to-white border-emerald-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Verified Requirements</p>
@@ -228,7 +245,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-purple-50/50 to-white border-purple-100">
+        <Card hover className="bg-gradient-to-br from-purple-50/50 to-white border-purple-200">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Stories Progress</p>
@@ -263,7 +280,7 @@ const DashboardPage: React.FC = () => {
           </div>
         </Card>
 
-        <Card hover className="bg-gradient-to-br from-purple-50/50 to-white border-purple-100">
+        <Card hover className="bg-gradient-to-br from-purple-50/50 to-white border-purple-200">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Developers</p>
@@ -312,8 +329,8 @@ const DashboardPage: React.FC = () => {
           <SectionTitle>Workload by Developer</SectionTitle>
           <div className="mt-6 h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={workloadByDeveloper.slice(0, 10)}>
-                <XAxis dataKey="userId" fontSize={12} angle={-45} textAnchor="end" height={80} />
+              <BarChart data={workloadWithLabels.slice(0, 10)}>
+                <XAxis dataKey="label" fontSize={12} angle={-45} textAnchor="end" height={80} />
                 <YAxis fontSize={12} allowDecimals={false} />
                 <Tooltip />
                 <Bar dataKey="tasksCount" fill="url(#colorGradient)" radius={[8, 8, 0, 0]} />
@@ -371,16 +388,16 @@ const DashboardPage: React.FC = () => {
               <TableHeaderCell align="right">Percentage</TableHeaderCell>
             </TableHeader>
             <TableBody>
-              {workloadByDeveloper.map((w) => {
+              {workloadWithLabels.map((w) => {
                 const percentage = totalTasks > 0 ? Math.round((w.tasksCount / totalTasks) * 100) : 0;
                 return (
                   <TableRow key={w.userId} hover>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-medium text-indigo-700">
-                          {w.userId.charAt(0).toUpperCase()}
+                          {w.label.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium">{w.userId || 'Unassigned'}</span>
+                        <span className="font-medium">{w.label}</span>
                       </div>
                     </TableCell>
                     <TableCell align="right">

@@ -94,15 +94,6 @@ const GlobalDashboardPage: React.FC = () => {
     projectsByOwner,
   } = dashboard;
 
-  const projectsStatusChartData = Object.entries(projectsByStatus).map(([status, count]) => ({
-    status,
-    count,
-  }));
-
-  const projectsByOwnerChartData = Object.entries(projectsByOwner)
-    .map(([owner, count]) => ({ owner: owner.substring(0, 20), count }))
-    .slice(0, 10);
-
   const usersById = (() => {
     const map = new Map<string, { label: string }>();
     if (users) {
@@ -112,6 +103,18 @@ const GlobalDashboardPage: React.FC = () => {
     }
     return map;
   })();
+
+  const projectsStatusChartData = Object.entries(projectsByStatus).map(([status, count]) => ({
+    status,
+    count,
+  }));
+
+  const projectsByOwnerChartData = Object.entries(projectsByOwner)
+    .map(([ownerId, count]) => {
+      const label = usersById.get(ownerId)?.label || ownerId;
+      return { owner: label.substring(0, 20), count };
+    })
+    .slice(0, 10);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -279,9 +282,10 @@ const GlobalDashboardPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        {project.members?.slice(0, 3).map((member) => (
-                          <Avatar key={member} name={member} size="sm" />
-                        ))}
+                        {project.members?.slice(0, 3).map((memberId) => {
+                          const label = usersById.get(memberId)?.label || memberId;
+                          return <Avatar key={memberId} name={label} size="sm" />;
+                        })}
                         {project.members && project.members.length > 3 && (
                           <span className="text-xs text-slate-500">+{project.members.length - 3}</span>
                         )}

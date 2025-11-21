@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useProjectStore } from '../../modules/projects/useProjectStore';
 import { useAuth } from '../../modules/auth/AuthContext';
+import { useProjects } from '../../modules/projects/useProjects';
 
 interface NavItem {
   label: string;
@@ -42,6 +43,7 @@ export const Sidebar: React.FC<{ isCollapsed: boolean; onToggle: () => void }> =
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { data: projects } = useProjects();
 
   useEffect(() => {
     const checkAdminRole = async () => {
@@ -72,11 +74,11 @@ export const Sidebar: React.FC<{ isCollapsed: boolean; onToggle: () => void }> =
 
   return (
     <aside
-      className={`bg-white/80 backdrop-blur-xl border-r border-slate-200/50 shadow-soft transition-all duration-300 ease-out flex flex-col ${
+      className={`bg-white/80 backdrop-blur-xl border-r-2 border-slate-300 shadow-medium transition-all duration-300 ease-out flex flex-col ${
         isCollapsed ? 'w-16' : 'w-64'
       }`}
     >
-      <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/50 bg-gradient-to-r from-indigo-50/50 to-white">
+      <div className="h-16 flex items-center justify-between px-4 border-b-2 border-slate-300 bg-gradient-to-r from-indigo-50/50 to-white">
         {!isCollapsed && (
           <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-indigo-700 bg-clip-text text-transparent">ALM</h1>
         )}
@@ -109,8 +111,8 @@ export const Sidebar: React.FC<{ isCollapsed: boolean; onToggle: () => void }> =
               to={item.path}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200 ${
                 isActive
-                  ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border border-indigo-100'
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 hover:shadow-sm'
+                  ? 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 shadow-sm border-2 border-indigo-300'
+                  : 'text-slate-600 border-2 border-transparent hover:bg-slate-50 hover:text-slate-900 hover:border-slate-200 hover:shadow-sm'
               }`}
               title={isCollapsed ? item.label : undefined}
             >
@@ -142,7 +144,9 @@ export const Sidebar: React.FC<{ isCollapsed: boolean; onToggle: () => void }> =
       {!isCollapsed && currentProjectId && (
         <div className="p-4 border-t border-slate-200">
           <div className="text-xs text-slate-500 mb-1">Current Project</div>
-          <div className="text-sm font-medium text-slate-900 truncate">{currentProjectId}</div>
+          <div className="text-sm font-medium text-slate-900 truncate">
+            {projects?.find((p) => p.id === currentProjectId)?.name || currentProjectId}
+          </div>
         </div>
       )}
     </aside>

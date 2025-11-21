@@ -7,10 +7,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles = {
-  primary: 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 focus:ring-indigo-500 shadow-sm hover:shadow-md active:scale-[0.98]',
-  secondary: 'bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 hover:border-slate-300 focus:ring-slate-500 shadow-sm hover:shadow active:scale-[0.98]',
-  danger: 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 focus:ring-red-500 shadow-sm hover:shadow-md active:scale-[0.98]',
-  ghost: 'bg-transparent text-slate-700 hover:bg-slate-50 focus:ring-slate-500 active:scale-[0.98]',
+  primary: 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white hover:from-indigo-700 hover:to-indigo-800 focus:ring-indigo-500 border-2 border-indigo-700 shadow-md hover:shadow-lg active:scale-[0.98]',
+  secondary: 'bg-slate-50 text-slate-700 border-2 border-slate-300 hover:bg-slate-100 hover:border-slate-400 focus:ring-slate-500 shadow-sm hover:shadow-md active:scale-[0.98]',
+  danger: 'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 focus:ring-red-500 border-2 border-red-700 shadow-md hover:shadow-lg active:scale-[0.98]',
+  ghost: 'bg-transparent text-slate-700 border-2 border-transparent hover:bg-slate-50 hover:border-slate-200 focus:ring-slate-500 active:scale-[0.98]',
 };
 
 const sizeStyles = {

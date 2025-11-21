@@ -87,7 +87,7 @@ const SprintsPage: React.FC = () => {
             const config = statusConfig[sprint.status];
 
             return (
-              <Card key={sprint.id} hover className="bg-gradient-to-br from-white to-slate-50/30">
+              <Card key={sprint.id} hover className="bg-gradient-to-br from-white to-slate-50/30 border-2 border-slate-300 shadow-md">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-900 text-lg mb-1">{sprint.name}</h3>

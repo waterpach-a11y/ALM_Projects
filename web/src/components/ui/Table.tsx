@@ -19,7 +19,7 @@ interface TableHeaderProps {
 
 export const TableHeader: React.FC<TableHeaderProps> = ({ children }) => {
   return (
-    <thead className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b border-slate-200">
+    <thead className="bg-gradient-to-r from-slate-50 to-slate-100/50 border-b-2 border-slate-300">
       <tr>{children}</tr>
     </thead>
   );
@@ -44,7 +44,7 @@ interface TableBodyProps {
 }
 
 export const TableBody: React.FC<TableBodyProps> = ({ children }) => {
-  return <tbody className="divide-y divide-slate-200">{children}</tbody>;
+  return <tbody className="divide-y divide-slate-200 border-t border-slate-200">{children}</tbody>;
 };
 
 interface TableRowProps {
@@ -56,7 +56,7 @@ interface TableRowProps {
 export const TableRow: React.FC<TableRowProps> = ({ children, hover = false, onClick }) => {
   return (
     <tr
-      className={`border-b border-slate-100 ${hover || onClick ? 'hover:bg-gradient-to-r hover:from-indigo-50/30 hover:to-transparent cursor-pointer transition-all duration-200' : ''}`}
+      className={`border-b border-slate-200 ${hover || onClick ? 'hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-transparent hover:border-indigo-200 cursor-pointer transition-all duration-200' : ''}`}
       onClick={onClick}
     >
       {children}

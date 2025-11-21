@@ -8,11 +8,11 @@ interface BadgeProps {
 }
 
 const variantStyles = {
-  default: 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 border border-slate-200',
-  success: 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border border-emerald-200',
-  warning: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border border-amber-200',
-  error: 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200',
-  info: 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 border border-indigo-200',
+  default: 'bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 border-2 border-slate-300',
+  success: 'bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700 border-2 border-emerald-300',
+  warning: 'bg-gradient-to-r from-amber-50 to-amber-100 text-amber-700 border-2 border-amber-300',
+  error: 'bg-gradient-to-r from-red-50 to-red-100 text-red-700 border-2 border-red-300',
+  info: 'bg-gradient-to-r from-indigo-50 to-indigo-100 text-indigo-700 border-2 border-indigo-300',
 };
 
 const sizeStyles = {

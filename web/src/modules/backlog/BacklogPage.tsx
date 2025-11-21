@@ -169,8 +169,8 @@ const BacklogPage: React.FC = () => {
                 <Card
                   key={epic.id}
                   hover
-                  className={`transition-all duration-200 ${
-                    isSelected ? 'ring-2 ring-indigo-500 border-indigo-300' : ''
+                  className={`transition-all duration-200 border-2 ${
+                    isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : 'border-slate-300 shadow-md'
                   }`}
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -273,8 +273,8 @@ const BacklogPage: React.FC = () => {
                     {['todo', 'in_progress', 'review', 'done'].map((columnStatus) => {
                       const columnStories = stories?.filter((s) => s.status === columnStatus) ?? [];
                       return (
-                        <div key={columnStatus} className="flex flex-col bg-slate-50 border border-slate-200 rounded-xl p-3 min-h-[200px]">
-                          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
+                        <div key={columnStatus} className="flex flex-col bg-slate-50 border-2 border-slate-300 rounded-xl p-4 min-h-[200px] shadow-md">
+                          <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-slate-300">
                             <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
                               {columnStatus.replace('_', ' ')}
                             </span>
@@ -288,7 +288,7 @@ const BacklogPage: React.FC = () => {
                                 ref={provided.innerRef}
                                 {...provided.droppableProps}
                                 className={`flex-1 space-y-2 min-h-[100px] rounded-lg p-2 transition-colors ${
-                                  snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-300' : ''
+                                  snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : ''
                                 }`}
                               >
                                 {columnStories.length === 0 && !snapshot.isDraggingOver && (
@@ -306,11 +306,11 @@ const BacklogPage: React.FC = () => {
                                           ref={dragProvided.innerRef}
                                           {...dragProvided.draggableProps}
                                           {...dragProvided.dragHandleProps}
-                                          className={`cursor-grab active:cursor-grabbing p-3 transition-all duration-200 ${
-                                            isSelected ? 'ring-2 ring-indigo-500 border-indigo-300' : ''
+                                          className={`cursor-grab active:cursor-grabbing p-4 transition-all duration-200 border-2 ${
+                                            isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : 'border-slate-300 shadow-md'
                                           } ${
                                             dragSnapshot.isDragging
-                                              ? 'shadow-lg scale-[1.02] border-indigo-300 bg-white rotate-2'
+                                              ? 'shadow-xl scale-[1.02] border-indigo-500 bg-white rotate-2'
                                               : ''
                                           }`}
                                         >
@@ -400,9 +400,9 @@ const BacklogPage: React.FC = () => {
                     <Card
                       key={task.id}
                       hover
-                      className={`transition-all duration-200 ${
-                        isSelected ? 'ring-2 ring-indigo-500 border-indigo-300' : ''
-                      } ${task.blocked ? 'border-red-300 bg-red-50' : ''}`}
+                      className={`transition-all duration-200 border-2 ${
+                        isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : task.blocked ? 'border-red-400 bg-red-50 shadow-md' : 'border-slate-300 shadow-md'
+                      }`}
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div
@@ -485,7 +485,7 @@ const BacklogPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
             <div className="space-y-3">
               {requirements?.map((req) => (
-                <Card key={req.id} hover>
+                <Card key={req.id} hover className="border-2 border-slate-300 shadow-md">
                   <div className="flex items-start justify-between mb-2">
                     <h4 className="font-medium text-slate-900 flex-1">{req.title}</h4>
                     <button
