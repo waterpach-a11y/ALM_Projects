@@ -1,6 +1,7 @@
 import React, { useState, FormEvent, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useProjectStore } from '../projects/useProjectStore';
+import { isOverdue, getDaysOverdue } from '../../utils/dateUtils';
 import { useEpics, useCreateEpic, useUpdateEpic, useDeleteEpic } from './useEpics';
 import { useStories, useCreateStory, useUpdateStory, useDeleteStory } from './useStories';
 import { useTasks, useCreateTask, useUpdateTask, useDeleteTask } from './useTasks';
@@ -191,7 +192,9 @@ const BacklogPage: React.FC = () => {
                   key={epic.id}
                   hover
                   className={`transition-all duration-200 border-2 ${
-                    isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : 'border-slate-300 shadow-md'
+                    isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg bg-white' : 
+                    isOverdue(epic.dueDate, epic.status) ? 'bg-red-50 border-red-400 shadow-md' :
+                    'border-slate-300 shadow-md bg-white'
                   }`}
                 >
                   <div className="relative mb-3">
@@ -204,11 +207,27 @@ const BacklogPage: React.FC = () => {
                           setSelectedTaskId(null);
                         }}
                       >
-                        <h3 className="font-semibold text-slate-900 mb-2">{epic.title}</h3>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-slate-900">{epic.title}</h3>
+                          {isOverdue(epic.dueDate, epic.status) && (
+                            <Badge variant="error" size="sm">
+                              Overdue ({getDaysOverdue(epic.dueDate)}d)
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant={epic.priority === 'high' ? 'error' : epic.priority === 'medium' ? 'warning' : 'success'}>
                             {epic.priority}
                           </Badge>
+                          {epic.dueDate?.toDate && (
+                            <span className={`text-xs font-medium ${
+                              isOverdue(epic.dueDate, epic.status) 
+                                ? 'text-red-600' 
+                                : 'text-slate-500'
+                            }`}>
+                              Due: {epic.dueDate.toDate().toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 absolute top-0 right-0">

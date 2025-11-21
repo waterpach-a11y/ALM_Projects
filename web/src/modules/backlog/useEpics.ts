@@ -105,10 +105,21 @@ export const useUpdateEpic = () => {
   return useMutation({
     mutationFn: async ({ projectId, epicId, updates }: UpdateEpicInput) => {
       const ref = doc(db, 'projects', projectId, 'epics', epicId);
-      const updateData: any = { ...updates, updatedAt: Timestamp.now() };
+      const updateData: any = { updatedAt: Timestamp.now() };
+      
+      // Only include fields that are not undefined
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.ownerId !== undefined) updateData.ownerId = updates.ownerId || null;
+      if (updates.businessValue !== undefined) updateData.businessValue = updates.businessValue ?? null;
+      if (updates.riskLevel !== undefined) updateData.riskLevel = updates.riskLevel || null;
+      if (updates.assignedTo !== undefined) updateData.assignedTo = updates.assignedTo || null;
       if (updates.dueDate !== undefined) {
         updateData.dueDate = updates.dueDate ? Timestamp.fromDate(updates.dueDate) : null;
       }
+      
       await updateDoc(ref, updateData);
     },
     onSuccess: (_, { projectId }) => {

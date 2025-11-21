@@ -12,6 +12,7 @@ export interface DashboardResponse {
   openBugsCount: number;
   blockedTasksCount: number;
   verifiedRequirementsCount: number;
+  overdueItemsCount: number;
   workloadByDeveloper: { userId: string; tasksCount: number }[];
   completionRate: number; // 0-100
   burndownData: { date: string; remaining: number }[];
@@ -35,6 +36,34 @@ export const useProjectDashboard = (projectId: string | null) => {
       ]);
 
       const totalEpics = epicsSnap.size;
+      
+      // Compter les Epics en retard
+      let overdueItemsCount = 0;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      epicsSnap.forEach((doc) => {
+        const data = doc.data() as any;
+        const status = (data.status as string) || 'todo';
+        const dueDate = data.dueDate;
+        
+        // Si le statut n'est pas "done" et qu'il y a une dueDate
+        if (status !== 'done' && dueDate) {
+          let date: Date | null = null;
+          if (dueDate?.toDate) {
+            date = dueDate.toDate() as Date;
+          } else if (dueDate instanceof Date) {
+            date = dueDate;
+          }
+          
+          if (date) {
+            const due = new Date(date);
+            due.setHours(0, 0, 0, 0);
+            if (due < today) {
+              overdueItemsCount++;
+            }
+          }
+        }
+      });
 
       const storiesByStatus: Record<string, number> = {};
       let storiesDone = 0;

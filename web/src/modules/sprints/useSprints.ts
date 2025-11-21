@@ -114,13 +114,19 @@ export const useUpdateSprint = () => {
   return useMutation({
     mutationFn: async ({ projectId, sprintId, updates }: UpdateSprintInput) => {
       const ref = doc(db, 'projects', projectId, 'sprints', sprintId);
-      const updateData: any = { ...updates, updatedAt: Timestamp.now() };
+      const updateData: any = { updatedAt: Timestamp.now() };
+      
+      // Only include fields that are not undefined
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.goal !== undefined) updateData.goal = updates.goal || '';
+      if (updates.status !== undefined) updateData.status = updates.status;
       if (updates.startDate !== undefined) {
         updateData.startDate = updates.startDate ? Timestamp.fromDate(updates.startDate) : null;
       }
       if (updates.endDate !== undefined) {
         updateData.endDate = updates.endDate ? Timestamp.fromDate(updates.endDate) : null;
       }
+      
       await updateDoc(ref, updateData);
     },
     onSuccess: (_, { projectId }) => {

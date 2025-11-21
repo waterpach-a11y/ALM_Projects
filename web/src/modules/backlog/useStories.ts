@@ -116,7 +116,21 @@ export const useUpdateStory = () => {
   return useMutation({
     mutationFn: async ({ projectId, storyId, updates }: UpdateStoryInput) => {
       const ref = doc(db, 'projects', projectId, 'stories', storyId);
-      await updateDoc(ref, { ...updates, updatedAt: Timestamp.now() });
+      const updateData: any = { updatedAt: Timestamp.now() };
+      
+      // Only include fields that are not undefined
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.status !== undefined) updateData.status = updates.status;
+      if (updates.storyPoints !== undefined) updateData.storyPoints = updates.storyPoints;
+      if (updates.ownerId !== undefined) updateData.ownerId = updates.ownerId || null;
+      if (updates.sprintNumber !== undefined) updateData.sprintNumber = updates.sprintNumber ?? null;
+      if (updates.acceptanceCriteria !== undefined) updateData.acceptanceCriteria = updates.acceptanceCriteria || [];
+      if (updates.businessValue !== undefined) updateData.businessValue = updates.businessValue ?? null;
+      if (updates.complexity !== undefined) updateData.complexity = updates.complexity || null;
+      if (updates.assignedTo !== undefined) updateData.assignedTo = updates.assignedTo || null;
+      
+      await updateDoc(ref, updateData);
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['stories', projectId] });

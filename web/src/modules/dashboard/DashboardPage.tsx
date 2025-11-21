@@ -30,6 +30,7 @@ import { Table, TableHeader, TableHeaderCell, TableBody, TableRow, TableCell } f
 import { useTraceability } from './useTraceability';
 import { TraceabilityTable } from '../../components/traceability/TraceabilityTable';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
+import { isOverdue, getDaysOverdue } from '../../utils/dateUtils';
 
 const STATUS_COLORS: Record<string, string> = {
   todo: '#94a3b8',
@@ -100,6 +101,7 @@ const DashboardPage: React.FC = () => {
     openBugsCount,
     blockedTasksCount,
     verifiedRequirementsCount,
+    overdueItemsCount,
     workloadByDeveloper,
     completionRate,
     burndownData,
@@ -239,10 +241,24 @@ const DashboardPage: React.FC = () => {
         <Card hover className="bg-gradient-to-br from-red-50/50 to-white border-red-200">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Blocked Tasks</p>
-              <p className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">{blockedTasksCount}</p>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Overdue Items</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent">{overdueItemsCount}</p>
             </div>
             <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-md">
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+          </div>
+        </Card>
+
+        <Card hover className="bg-gradient-to-br from-orange-50/50 to-white border-orange-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">Blocked Tasks</p>
+              <p className="text-4xl font-bold bg-gradient-to-r from-orange-600 to-orange-700 bg-clip-text text-transparent">{blockedTasksCount}</p>
+            </div>
+            <div className="w-14 h-14 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-md">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
@@ -497,9 +513,9 @@ const DashboardPage: React.FC = () => {
                     const completed = counts.done;
                     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-                    // Vérifier si en retard (dueDate dépassée)
-                    const isOverdue = epic.dueDate?.toDate && epic.dueDate.toDate() < new Date() && percentage < 100;
-                    const rowBgColor = isOverdue
+                    // Vérifier si en retard (dueDate dépassée et statut différent de done)
+                    const epicIsOverdue = isOverdue(epic.dueDate, epic.status);
+                    const rowBgColor = epicIsOverdue
                       ? 'bg-red-50/30 border-red-200'
                       : percentage === 100
                       ? 'bg-emerald-50/30 border-emerald-200'
@@ -513,16 +529,19 @@ const DashboardPage: React.FC = () => {
                       <TableRow key={epic.id} hover className={rowBgColor}>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            {isOverdue && (
-                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {epicIsOverdue && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" title={`Overdue by ${getDaysOverdue(epic.dueDate)} days`}>
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                               </svg>
                             )}
                             <div>
                               <div className="font-bold text-slate-900">{epic.title}</div>
                               {epic.dueDate?.toDate && (
-                                <div className="text-xs text-slate-500 mt-0.5">
+                                <div className={`text-xs mt-0.5 ${
+                                  epicIsOverdue ? 'text-red-600 font-semibold' : 'text-slate-500'
+                                }`}>
                                   Due: {epic.dueDate.toDate().toLocaleDateString()}
+                                  {epicIsOverdue && ` (${getDaysOverdue(epic.dueDate)} days overdue)`}
                                 </div>
                               )}
                             </div>

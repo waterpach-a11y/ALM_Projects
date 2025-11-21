@@ -125,7 +125,9 @@ const HelpPage: React.FC = () => {
                     <p className="text-sm text-slate-600">
                       Un Epic représente une grande fonctionnalité ou un objectif majeur. Il peut contenir plusieurs
                       Stories. Les Epics ont des priorités (low, medium, high), des valeurs métier, des niveaux de
-                      risque, et peuvent être assignés à des membres de l'équipe.
+                      risque, une date d'échéance, et peuvent être assignés à des membres de l'équipe. Les Epics en
+                      retard (date d'échéance dépassée et statut différent de "done") sont automatiquement mis en
+                      évidence avec un fond rouge clair et un badge "Overdue".
                     </p>
                   </div>
                 </div>
@@ -187,11 +189,22 @@ const HelpPage: React.FC = () => {
                 <strong>Édition :</strong> Cliquez sur l'icône d'édition pour modifier les détails d'un élément
               </li>
               <li>
-                <strong>Suppression :</strong> Utilisez l'icône de suppression pour supprimer un élément (avec
-                confirmation)
+                <strong>Suppression :</strong> Utilisez l'icône de suppression (corbeille) pour supprimer un élément. Une
+                boîte de dialogue de confirmation apparaîtra pour éviter les suppressions accidentelles. Note : La
+                suppression d'un Epic supprimera également toutes ses Stories, Tasks et Requirements associées.
               </li>
               <li>
                 <strong>Assignation :</strong> Assignez des éléments aux membres de l'équipe via les listes déroulantes
+                dans les formulaires d'édition. Seuls les membres du projet apparaissent dans ces listes pour garantir
+                la cohérence et éviter les erreurs. L'option "Unassigned" permet de retirer une assignation.
+              </li>
+              <li>
+                <strong>Dates d'échéance :</strong> Définissez des dates d'échéance pour les Epics. Les éléments en
+                retard sont automatiquement identifiés et mis en évidence visuellement.
+              </li>
+              <li>
+                <strong>Tooltips :</strong> Survolez les éléments de l'interface avec votre souris pour obtenir des
+                descriptions rapides et des informations contextuelles.
               </li>
             </ul>
           </div>
@@ -219,6 +232,10 @@ const HelpPage: React.FC = () => {
               </li>
               <li>
                 <strong>Progression :</strong> Pourcentage de complétion global du projet
+              </li>
+              <li>
+                <strong>Éléments en retard :</strong> Nombre d'Epics avec une date d'échéance dépassée et un statut
+                différent de "done"
               </li>
               <li>
                 <strong>Tâches bloquées :</strong> Nombre de tâches actuellement bloquées
@@ -254,13 +271,26 @@ const HelpPage: React.FC = () => {
             <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
               <li>
                 <strong>Barres de progression :</strong> Pourcentage de complétion avec code couleur (vert = complet,
-                jaune = en cours, rouge = bloqué/en retard)
+                jaune = en cours, rouge = bloqué/en retard). Affiche également le nombre d'éléments complétés sur le
+                total.
               </li>
               <li>
-                <strong>Badges de statut :</strong> Indicateurs visuels pour le statut de chaque élément
+                <strong>Badges de statut :</strong> Indicateurs visuels pour le statut de chaque élément (Complete, On
+                Track, In Progress, Started, Blocked, Overdue)
               </li>
               <li>
-                <strong>Alertes :</strong> Icônes d'alerte pour les éléments bloqués ou en retard
+                <strong>Alertes :</strong> Icônes d'alerte (⚠️) pour les éléments bloqués ou en retard, avec tooltips
+                explicatifs
+              </li>
+              <li>
+                <strong>Code couleur des lignes :</strong> Les lignes du tableau sont colorées selon le statut :
+                <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                  <li className="text-emerald-700">Vert = Complété à 100%</li>
+                  <li className="text-green-700">Vert clair = Sur la bonne voie (≥80%)</li>
+                  <li className="text-amber-700">Jaune = En cours (≥50%)</li>
+                  <li className="text-yellow-700">Jaune clair = Commencé (&gt;0%)</li>
+                  <li className="text-red-700">Rouge = En retard ou bloqué</li>
+                </ul>
               </li>
             </ul>
           </div>
@@ -413,11 +443,56 @@ const HelpPage: React.FC = () => {
             </ul>
           </div>
           <div>
+            <h3 className="font-semibold text-slate-900 mb-2">Gestion des Dates d'Échéance</h3>
+            <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+              <li>
+                Définissez des dates d'échéance pour vos Epics lors de leur création ou édition
+              </li>
+              <li>
+                Les Epics en retard (date dépassée et statut ≠ "done") sont automatiquement identifiés avec :
+                <ul className="list-disc list-inside ml-6 mt-1 space-y-0.5">
+                  <li>Un fond rouge clair sur la carte</li>
+                  <li>Une bordure rouge</li>
+                  <li>Un badge "Overdue (Xd)" indiquant le nombre de jours de retard</li>
+                  <li>La date d'échéance affichée en rouge</li>
+                </ul>
+              </li>
+              <li>
+                Le compteur "Overdue Items" dans le dashboard affiche le nombre total d'Epics en retard
+              </li>
+            </ul>
+          </div>
+          <div>
             <h3 className="font-semibold text-slate-900 mb-2">Raccourcis et Navigation</h3>
             <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
-              <li>Utilisez le sélecteur de projet dans la barre supérieure pour changer rapidement de projet</li>
-              <li>Les breadcrumbs vous montrent toujours où vous êtes dans l'application</li>
-              <li>Les liens de navigation rapide sous les breadcrumbs permettent d'accéder rapidement aux différentes sections</li>
+              <li>
+                Utilisez le sélecteur de projet dans la barre supérieure pour changer rapidement de projet. L'URL se
+                met automatiquement à jour pour refléter le projet sélectionné.
+              </li>
+              <li>
+                Les breadcrumbs vous montrent toujours où vous êtes dans l'application et permettent de naviguer
+                rapidement
+              </li>
+              <li>
+                Les liens de navigation rapide sous les breadcrumbs permettent d'accéder rapidement aux différentes
+                sections du projet
+              </li>
+              <li>
+                L'URL contient toujours l'ID du projet, ce qui permet de partager des liens directs et de conserver le
+                contexte lors du rafraîchissement de la page
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-semibold text-slate-900 mb-2">Tooltips et Aide Contextuelle</h3>
+            <p className="text-slate-700 mb-2">
+              L'application inclut des tooltips pour vous aider à comprendre les différents éléments :
+            </p>
+            <ul className="list-disc list-inside space-y-1 text-slate-700 ml-4">
+              <li>Survolez les en-têtes de tableaux pour obtenir des descriptions</li>
+              <li>Survolez les badges de statut pour comprendre leur signification</li>
+              <li>Survolez les icônes d'alerte pour voir les détails des problèmes</li>
+              <li>Les tooltips apparaissent après un court délai pour ne pas gêner la navigation</li>
             </ul>
           </div>
         </div>

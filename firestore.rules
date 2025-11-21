@@ -213,8 +213,10 @@ service cloud.firestore {
                       && isValidWorkflowStatus(projectId, request.resource.data.status)
                       && request.resource.data.storyPoints is number;
 
+        // Allow update if status hasn't changed OR if new status is valid
         allow update: if canEditBacklog(project())
-                      && isValidWorkflowStatus(projectId, request.resource.data.status);
+                      && (request.resource.data.status == resource.data.status
+                          || isValidWorkflowStatus(projectId, request.resource.data.status));
         allow delete: if isAdmin() || isProjectOwner();
       }
 
@@ -244,8 +246,10 @@ service cloud.firestore {
                       && request.resource.data.status is string
                       && isValidWorkflowStatus(projectId, request.resource.data.status);
 
+        // Allow update if status hasn't changed OR if new status is valid
         allow update: if canUpdateTask()
-                      && isValidWorkflowStatus(projectId, request.resource.data.status);
+                      && (request.resource.data.status == resource.data.status
+                          || isValidWorkflowStatus(projectId, request.resource.data.status));
         allow delete: if isAdmin() || isProjectOwner();
       }
 

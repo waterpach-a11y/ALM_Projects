@@ -101,10 +101,18 @@ export const useUpdateRequirement = () => {
   return useMutation({
     mutationFn: async ({ projectId, requirementId, ...updates }: UpdateRequirementInput) => {
       const ref = doc(db, 'projects', projectId, 'requirements', requirementId);
-      await updateDoc(ref, {
-        ...updates,
-        updatedAt: serverTimestamp(),
-      });
+      const updateData: any = { updatedAt: serverTimestamp() };
+      
+      // Only include fields that are not undefined
+      if (updates.title !== undefined) updateData.title = updates.title;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.acceptanceCriteria !== undefined) updateData.acceptanceCriteria = updates.acceptanceCriteria || [];
+      if (updates.priority !== undefined) updateData.priority = updates.priority;
+      if (updates.requirementType !== undefined) updateData.requirementType = updates.requirementType || null;
+      if (updates.testCases !== undefined) updateData.testCases = updates.testCases || [];
+      if (updates.verified !== undefined) updateData.verified = updates.verified;
+      
+      await updateDoc(ref, updateData);
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['requirements', projectId] });
