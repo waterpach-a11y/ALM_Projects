@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { signOut } from 'firebase/auth';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { auth } from '../../firebase';
 import { useAuth } from '../../modules/auth/AuthContext';
 import { useProjects } from '../../modules/projects/useProjects';
@@ -11,6 +11,8 @@ export const Topbar: React.FC = () => {
   const { user } = useAuth();
   const { data: projects } = useProjects();
   const { currentProjectId, setCurrentProjectId } = useProjectStore();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showProjectMenu, setShowProjectMenu] = useState(false);
 
@@ -53,6 +55,19 @@ export const Topbar: React.FC = () => {
                     onClick={() => {
                       setCurrentProjectId(project.id);
                       setShowProjectMenu(false);
+                      
+                      // Navigate to the same page but with the new project ID
+                      const pathParts = location.pathname.split('/');
+                      const projectIndex = pathParts.indexOf('project');
+                      
+                      if (projectIndex !== -1 && pathParts[projectIndex + 1]) {
+                        // Replace the project ID in the current path
+                        pathParts[projectIndex + 1] = project.id;
+                        navigate(pathParts.join('/'));
+                      } else {
+                        // If not in a project route, go to dashboard
+                        navigate(`/app/project/${project.id}/dashboard`);
+                      }
                     }}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
                       project.id === currentProjectId
