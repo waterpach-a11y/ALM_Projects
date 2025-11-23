@@ -600,6 +600,137 @@ const DashboardPage: React.FC = () => {
             </div>
           </Card>
 
+          {/* Epics → Tasks (Aggregated) */}
+          <Card className="bg-gradient-to-br from-white to-slate-50/30">
+            <SectionTitle>Epics → Tasks Traceability</SectionTitle>
+            <div className="mt-6 overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableHeaderCell>Epic</TableHeaderCell>
+                  <TableHeaderCell align="right">Tasks Count</TableHeaderCell>
+                  <TableHeaderCell align="right">Todo</TableHeaderCell>
+                  <TableHeaderCell align="right">In Progress</TableHeaderCell>
+                  <TableHeaderCell align="right">Review</TableHeaderCell>
+                  <TableHeaderCell align="right">Done</TableHeaderCell>
+                  <TableHeaderCell align="right">Blocked</TableHeaderCell>
+                  <TableHeaderCell>Progress</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                </TableHeader>
+                <TableBody>
+                  {traceabilityData.epics.map((epic) => {
+                    // Get all stories for this epic
+                    const relatedStories = traceabilityData.stories.filter((s) => s.epicId === epic.id);
+                    // Get all tasks for all stories of this epic
+                    const relatedTasks = traceabilityData.tasks.filter((t) =>
+                      relatedStories.some((s) => s.id === t.storyId)
+                    );
+                    const counts = {
+                      todo: relatedTasks.filter((t) => t.status === 'todo').length,
+                      in_progress: relatedTasks.filter((t) => t.status === 'in_progress').length,
+                      review: relatedTasks.filter((t) => t.status === 'review').length,
+                      done: relatedTasks.filter((t) => t.status === 'done').length,
+                      blocked: relatedTasks.filter((t) => t.blocked).length,
+                    };
+                    const total = relatedTasks.length;
+                    const completed = counts.done;
+                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const hasBlocked = counts.blocked > 0;
+
+                    const epicIsOverdue = isOverdue(epic.dueDate, epic.status);
+                    const rowBgColor = epicIsOverdue || hasBlocked
+                      ? 'bg-red-50/30 border-red-200'
+                      : percentage === 100
+                      ? 'bg-emerald-50/30 border-emerald-200'
+                      : percentage >= 80
+                      ? 'bg-green-50/30 border-green-200'
+                      : percentage >= 50
+                      ? 'bg-amber-50/30 border-amber-200'
+                      : '';
+
+                    return (
+                      <TableRow key={epic.id} hover className={rowBgColor}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {epicIsOverdue && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" title={`Overdue by ${getDaysOverdue(epic.dueDate)} days`}>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            {hasBlocked && !epicIsOverdue && (
+                              <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Has blocked tasks">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            )}
+                            <div>
+                              <div className="font-bold text-slate-900">{epic.title}</div>
+                              {epic.dueDate?.toDate && (
+                                <div className={`text-xs mt-0.5 ${
+                                  epicIsOverdue ? 'text-red-600 font-semibold' : 'text-slate-500'
+                                }`}>
+                                  Due: {epic.dueDate.toDate().toLocaleDateString()}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className="font-bold text-slate-900">{total}</span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.todo > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {counts.todo}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {counts.in_progress}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.review > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {counts.review}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${counts.done > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {counts.done}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.blocked > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                            {counts.blocked}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <ProgressIndicator
+                            percentage={percentage}
+                            total={total}
+                            completed={completed}
+                            size="sm"
+                            showBadge={false}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {hasBlocked ? (
+                            <Badge variant="error" size="sm">⚠ Blocked</Badge>
+                          ) : percentage === 100 ? (
+                            <Badge variant="success" size="sm">✓ Complete</Badge>
+                          ) : percentage >= 80 ? (
+                            <Badge variant="success" size="sm">On Track</Badge>
+                          ) : percentage >= 50 ? (
+                            <Badge variant="warning" size="sm">In Progress</Badge>
+                          ) : (
+                            <Badge variant="default" size="sm">Started</Badge>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
           {/* Stories → Tasks (Aggregated) */}
           <Card className="bg-gradient-to-br from-white to-slate-50/30">
             <SectionTitle>Stories → Tasks Traceability</SectionTitle>

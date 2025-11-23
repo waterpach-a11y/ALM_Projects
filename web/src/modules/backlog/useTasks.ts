@@ -2,6 +2,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { addDoc, collection, doc, getDocs, query, where, Timestamp, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 
+export interface TaskResult {
+  id?: string;
+  comment?: string;
+  result?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  createdAt?: any;
+  createdBy?: string;
+}
+
 export interface Task {
   id: string;
   storyId: string;
@@ -17,6 +27,9 @@ export interface Task {
   blockedReason?: string;
   reviewRequested?: boolean;
   description?: string;
+  results?: TaskResult[];
+  comments?: string[];
+  attachments?: { url: string; name: string; uploadedAt?: any }[];
   createdAt?: any;
   updatedAt?: any;
 }
@@ -47,6 +60,9 @@ export const useTasks = (projectId: string | null, storyId: string | null) => {
           blockedReason: data.blockedReason,
           reviewRequested: data.reviewRequested || false,
           description: data.description,
+          results: data.results || [],
+          comments: data.comments || [],
+          attachments: data.attachments || [],
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
         };
@@ -115,6 +131,9 @@ interface UpdateTaskInput {
     reviewRequested?: boolean;
     timeSpent?: number;
     remainingHours?: number;
+    results?: TaskResult[];
+    comments?: string[];
+    attachments?: { url: string; name: string; uploadedAt?: any }[];
   };
 }
 

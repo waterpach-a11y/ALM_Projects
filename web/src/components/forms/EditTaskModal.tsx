@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Modal } from '../ui/Modal';
 import { FormField, Input, Textarea, Select } from '../ui/FormField';
 import { Button } from '../ui/Button';
+import { Badge } from '../ui/Badge';
 import { Task, useUpdateTask } from '../../modules/backlog/useTasks';
 import { useAuth } from '../../modules/auth/AuthContext';
 import { useProjectMembers } from '../../modules/projects/useProjectMembers';
+import { TaskResultsModal } from './TaskResultsModal';
 
 interface EditTaskModalProps {
   isOpen: boolean;
@@ -17,6 +19,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
   const { user } = useAuth();
   const updateTask = useUpdateTask();
   const { data: projectMembers } = useProjectMembers(projectId);
+  const [showResultsModal, setShowResultsModal] = useState(false);
   
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -190,15 +193,42 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
             <span className="text-sm font-medium text-slate-700">Review Requested</span>
           </label>
         </div>
-        <div className="flex justify-end gap-3 pt-4">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+        <div className="flex justify-between items-center pt-4 border-t border-slate-200">
+          <Button
+            type="button"
+            variant="info"
+            onClick={() => {
+              setShowResultsModal(true);
+            }}
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            View Results & Comments
+            {task && ((task.results && task.results.length > 0) || (task.comments && task.comments.length > 0) || (task.attachments && task.attachments.length > 0)) && (
+              <Badge variant="primary" size="sm" className="ml-2">
+                {((task.results?.length || 0) + (task.comments?.length || 0) + (task.attachments?.length || 0))}
+              </Badge>
+            )}
           </Button>
-          <Button type="submit" variant="primary" isLoading={updateTask.isPending}>
-            Save Changes
-          </Button>
+          <div className="flex gap-3">
+            <Button type="button" variant="secondary" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" isLoading={updateTask.isPending}>
+              Save Changes
+            </Button>
+          </div>
         </div>
       </form>
+      {task && (
+        <TaskResultsModal
+          isOpen={showResultsModal}
+          onClose={() => setShowResultsModal(false)}
+          task={task}
+          projectId={projectId}
+        />
+      )}
     </Modal>
   );
 };
