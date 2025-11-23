@@ -32,6 +32,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
   const [blocked, setBlocked] = useState(false);
   const [blockedReason, setBlockedReason] = useState('');
   const [reviewRequested, setReviewRequested] = useState(false);
+  const [testStatus, setTestStatus] = useState<'not_tested' | 'in_progress' | 'tested' | 'passed' | 'failed' | 'rejected'>('not_tested');
 
   useEffect(() => {
     if (task) {
@@ -56,6 +57,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
       setBlocked(task.blocked || false);
       setBlockedReason(task.blockedReason || '');
       setReviewRequested(task.reviewRequested || false);
+      setTestStatus(task.testStatus || 'not_tested');
     }
   }, [task, projectMembers]);
 
@@ -83,6 +85,7 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
         blocked,
         blockedReason: blocked ? blockedReason : undefined,
         reviewRequested,
+        testStatus,
         ownerId: user?.uid || undefined,
       },
     });
@@ -193,6 +196,16 @@ export const EditTaskModal: React.FC<EditTaskModalProps> = ({ isOpen, onClose, t
             <span className="text-sm font-medium text-slate-700">Review Requested</span>
           </label>
         </div>
+        <FormField label="Test Status">
+          <Select value={testStatus} onChange={(e) => setTestStatus(e.target.value as any)}>
+            <option value="not_tested">Not Tested</option>
+            <option value="in_progress">Test In Progress</option>
+            <option value="tested">Tested</option>
+            <option value="passed">Passed</option>
+            <option value="failed">Failed</option>
+            <option value="rejected">Rejected</option>
+          </Select>
+        </FormField>
         <div className="flex justify-between items-center pt-4 border-t border-slate-200">
           <Button
             type="button"

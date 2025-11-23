@@ -87,6 +87,7 @@ export const useTraceability = (projectId: string | null) => {
           blockedReason: data.blockedReason,
           reviewRequested: data.reviewRequested || false,
           description: data.description,
+          testStatus: data.testStatus || 'not_tested',
           createdAt: data.createdAt,
           updatedAt: data.updatedAt,
         };

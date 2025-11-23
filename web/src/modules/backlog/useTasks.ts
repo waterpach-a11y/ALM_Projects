@@ -12,6 +12,8 @@ export interface TaskResult {
   createdBy?: string;
 }
 
+export type TestStatus = 'not_tested' | 'in_progress' | 'tested' | 'passed' | 'failed' | 'rejected';
+
 export interface Task {
   id: string;
   storyId: string;
@@ -27,9 +29,10 @@ export interface Task {
   blockedReason?: string;
   reviewRequested?: boolean;
   description?: string;
+  testStatus?: TestStatus;
   results?: TaskResult[];
   comments?: string[];
-  attachments?: { url: string; name: string; uploadedAt?: any }[];
+  attachments?: { url: string; name: string; uploadedAt?: any; size?: number; type?: string }[];
   createdAt?: any;
   updatedAt?: any;
 }
@@ -60,6 +63,7 @@ export const useTasks = (projectId: string | null, storyId: string | null) => {
           blockedReason: data.blockedReason,
           reviewRequested: data.reviewRequested || false,
           description: data.description,
+          testStatus: data.testStatus || 'not_tested',
           results: data.results || [],
           comments: data.comments || [],
           attachments: data.attachments || [],
@@ -103,6 +107,7 @@ export const useCreateTask = () => {
         blocked: blocked || false,
         blockedReason: blockedReason || null,
         reviewRequested: reviewRequested || false,
+        testStatus: 'not_tested',
         timeSpent: 0,
         remainingHours: estimatedHours || null,
         createdAt: Timestamp.now(),
@@ -131,9 +136,10 @@ interface UpdateTaskInput {
     reviewRequested?: boolean;
     timeSpent?: number;
     remainingHours?: number;
+    testStatus?: TestStatus;
     results?: TaskResult[];
     comments?: string[];
-    attachments?: { url: string; name: string; uploadedAt?: any }[];
+    attachments?: { url: string; name: string; uploadedAt?: any; size?: number; type?: string }[];
   };
 }
 

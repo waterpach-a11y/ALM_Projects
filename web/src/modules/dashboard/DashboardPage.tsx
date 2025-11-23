@@ -613,6 +613,12 @@ const DashboardPage: React.FC = () => {
                   <TableHeaderCell align="right">Review</TableHeaderCell>
                   <TableHeaderCell align="right">Done</TableHeaderCell>
                   <TableHeaderCell align="right">Blocked</TableHeaderCell>
+                  <TableHeaderCell align="right">Not Tested</TableHeaderCell>
+                  <TableHeaderCell align="right">Test In Progress</TableHeaderCell>
+                  <TableHeaderCell align="right">Tested</TableHeaderCell>
+                  <TableHeaderCell align="right">Passed</TableHeaderCell>
+                  <TableHeaderCell align="right">Failed</TableHeaderCell>
+                  <TableHeaderCell align="right">Rejected</TableHeaderCell>
                   <TableHeaderCell>Progress</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
                 </TableHeader>
@@ -630,6 +636,12 @@ const DashboardPage: React.FC = () => {
                       review: relatedTasks.filter((t) => t.status === 'review').length,
                       done: relatedTasks.filter((t) => t.status === 'done').length,
                       blocked: relatedTasks.filter((t) => t.blocked).length,
+                      not_tested: relatedTasks.filter((t) => !t.testStatus || t.testStatus === 'not_tested').length,
+                      test_in_progress: relatedTasks.filter((t) => t.testStatus === 'in_progress').length,
+                      tested: relatedTasks.filter((t) => t.testStatus === 'tested').length,
+                      passed: relatedTasks.filter((t) => t.testStatus === 'passed').length,
+                      failed: relatedTasks.filter((t) => t.testStatus === 'failed').length,
+                      rejected: relatedTasks.filter((t) => t.testStatus === 'rejected').length,
                     };
                     const total = relatedTasks.length;
                     const completed = counts.done;
@@ -699,6 +711,36 @@ const DashboardPage: React.FC = () => {
                         <TableCell align="right">
                           <span className={`font-semibold ${counts.blocked > 0 ? 'text-red-700' : 'text-slate-400'}`}>
                             {counts.blocked}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.not_tested > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {counts.not_tested}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.test_in_progress > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
+                            {counts.test_in_progress}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.tested > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {counts.tested}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${counts.passed > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {counts.passed}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.failed > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                            {counts.failed}
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${counts.rejected > 0 ? 'text-orange-700' : 'text-slate-400'}`}>
+                            {counts.rejected}
                           </span>
                         </TableCell>
                         <TableCell>

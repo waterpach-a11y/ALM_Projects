@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Modal } from '../ui/Modal';
 import { FormField, Textarea, Input } from '../ui/FormField';
 import { Button } from '../ui/Button';
@@ -8,6 +8,8 @@ import { Timestamp } from 'firebase/firestore';
 import { Badge } from '../ui/Badge';
 import { Avatar } from '../ui/Avatar';
 import { useUsers } from '../../modules/users/useUsers';
+import { storage } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 interface TaskResultsModalProps {
   isOpen: boolean;
@@ -28,6 +30,9 @@ export const TaskResultsModal: React.FC<TaskResultsModalProps> = ({ isOpen, onCl
   const [newComment, setNewComment] = useState('');
   const [newAttachmentUrl, setNewAttachmentUrl] = useState('');
   const [newAttachmentName, setNewAttachmentName] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const taskResults = task?.results || [];
   const taskComments = task?.comments || [];
@@ -76,6 +81,84 @@ export const TaskResultsModal: React.FC<TaskResultsModalProps> = ({ isOpen, onCl
     });
 
     setNewComment('');
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setNewAttachmentName(file.name);
+    }
+  };
+
+  const handleUploadFile = async () => {
+    if (!task || !projectId || !selectedFile) return;
+    
+    // Check file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      alert(`Le fichier est trop volumineux. Taille maximale autorisée: 10MB. Taille actuelle: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+    
+    setUploading(true);
+    try {
+      // Create a unique file path: tasks/{projectId}/{taskId}/{timestamp}_{filename}
+      // Sanitize filename to avoid special characters issues
+      const timestamp = Date.now();
+      const sanitizedFileName = selectedFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const fileName = `${timestamp}_${sanitizedFileName}`;
+      const storageRef = ref(storage, `tasks/${projectId}/${task.id}/${fileName}`);
+      
+      // Upload file
+      const snapshot = await uploadBytes(storageRef, selectedFile);
+      
+      // Get download URL
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      
+      // Add attachment to task
+      const newAttachment = {
+        url: downloadURL,
+        name: selectedFile.name,
+        uploadedAt: Timestamp.now(),
+        size: selectedFile.size,
+        type: selectedFile.type,
+      };
+
+      const updatedAttachments = [...taskAttachments, newAttachment];
+      
+      await updateTask.mutateAsync({
+        projectId,
+        taskId: task.id,
+        updates: {
+          attachments: updatedAttachments,
+        },
+      });
+
+      // Reset form
+      setSelectedFile(null);
+      setNewAttachmentName('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      let errorMessage = 'Erreur lors de l\'upload du fichier.';
+      
+      if (error?.code === 'storage/unauthorized') {
+        errorMessage = 'Vous n\'avez pas l\'autorisation d\'uploader des fichiers. Vérifiez vos permissions.';
+      } else if (error?.code === 'storage/canceled') {
+        errorMessage = 'L\'upload a été annulé.';
+      } else if (error?.code === 'storage/unknown') {
+        errorMessage = 'Erreur inconnue. Vérifiez que Firebase Storage est activé dans votre projet Firebase.';
+      } else if (error?.message?.includes('CORS')) {
+        errorMessage = 'Erreur CORS. Veuillez activer Firebase Storage dans la console Firebase et déployer les règles de storage.';
+      }
+      
+      alert(errorMessage + '\n\nDétails: ' + (error?.message || 'Erreur inconnue'));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleAddAttachment = async () => {
@@ -348,6 +431,11 @@ export const TaskResultsModal: React.FC<TaskResultsModalProps> = ({ isOpen, onCl
                         ({attachment.uploadedAt.toDate().toLocaleDateString()})
                       </span>
                     )}
+                    {(attachment as any).size && (
+                      <span className="text-xs text-slate-500">
+                        ({(Math.round((attachment as any).size / 1024 * 100) / 100).toFixed(2)} KB)
+                      </span>
+                    )}
                   </a>
                   <button
                     onClick={() => handleDeleteAttachment(index)}
@@ -362,34 +450,81 @@ export const TaskResultsModal: React.FC<TaskResultsModalProps> = ({ isOpen, onCl
               ))
             )}
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Attachment URL">
-              <Input
-                type="url"
-                value={newAttachmentUrl}
-                onChange={(e) => setNewAttachmentUrl(e.target.value)}
-                placeholder="https://..."
-              />
-            </FormField>
-            <FormField label="Attachment Name">
-              <Input
-                type="text"
-                value={newAttachmentName}
-                onChange={(e) => setNewAttachmentName(e.target.value)}
-                placeholder="Document name"
-              />
-            </FormField>
+          
+          {/* File Upload Section */}
+          <div className="p-4 bg-purple-50 rounded-lg border-2 border-purple-200 mb-4">
+            <h4 className="font-medium text-slate-900 mb-3">Upload Local File</h4>
+            <div className="space-y-3">
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-purple-300 rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-700">
+                    {selectedFile ? selectedFile.name : 'Select File'}
+                  </span>
+                </label>
+                {selectedFile && (
+                  <div className="mt-2 text-sm text-slate-600">
+                    <p>File: {selectedFile.name}</p>
+                    <p>Size: {(Math.round(selectedFile.size / 1024 * 100) / 100).toFixed(2)} KB</p>
+                  </div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                onClick={handleUploadFile}
+                isLoading={uploading || updateTask.isPending}
+                disabled={!selectedFile}
+              >
+                {uploading ? 'Uploading...' : 'Upload File'}
+              </Button>
+            </div>
           </div>
-          <Button
-            type="button"
-            variant="primary"
-            onClick={handleAddAttachment}
-            isLoading={updateTask.isPending}
-            disabled={!newAttachmentUrl.trim()}
-            className="mt-2"
-          >
-            Add Attachment
-          </Button>
+
+          {/* URL Attachment Section (Alternative) */}
+          <div className="p-4 bg-slate-50 rounded-lg border-2 border-slate-200">
+            <h4 className="font-medium text-slate-900 mb-3">Or Add External URL</h4>
+            <div className="grid grid-cols-2 gap-3">
+              <FormField label="Attachment URL">
+                <Input
+                  type="url"
+                  value={newAttachmentUrl}
+                  onChange={(e) => setNewAttachmentUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </FormField>
+              <FormField label="Attachment Name">
+                <Input
+                  type="text"
+                  value={newAttachmentName}
+                  onChange={(e) => setNewAttachmentName(e.target.value)}
+                  placeholder="Document name"
+                />
+              </FormField>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAddAttachment}
+              isLoading={updateTask.isPending}
+              disabled={!newAttachmentUrl.trim()}
+              className="mt-2"
+            >
+              Add URL Attachment
+            </Button>
+          </div>
         </div>
 
         <div className="flex justify-end pt-4 border-t border-slate-200">
