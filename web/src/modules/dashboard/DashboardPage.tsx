@@ -613,13 +613,16 @@ const DashboardPage: React.FC = () => {
                   <TableHeaderCell align="right">Review</TableHeaderCell>
                   <TableHeaderCell align="right">Done</TableHeaderCell>
                   <TableHeaderCell align="right">Blocked</TableHeaderCell>
-                  <TableHeaderCell align="right">Not Tested</TableHeaderCell>
-                  <TableHeaderCell align="right">Test In Progress</TableHeaderCell>
-                  <TableHeaderCell align="right">Tested</TableHeaderCell>
-                  <TableHeaderCell align="right">Passed</TableHeaderCell>
-                  <TableHeaderCell align="right">Failed</TableHeaderCell>
-                  <TableHeaderCell align="right">Rejected</TableHeaderCell>
-                  <TableHeaderCell>Progress</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Not Tested</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Test In Progress</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Testing</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Passed</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Failed</TableHeaderCell>
+                  <TableHeaderCell align="right">Done & Rejected</TableHeaderCell>
+                  <TableHeaderCell align="right">%Done</TableHeaderCell>
+                  <TableHeaderCell align="right">%Done & Not Tested</TableHeaderCell>
+                  <TableHeaderCell align="right">%Done & Failed</TableHeaderCell>
+                  <TableHeaderCell align="right">%Done & Passed</TableHeaderCell>
                   <TableHeaderCell>Status</TableHeaderCell>
                 </TableHeader>
                 <TableBody>
@@ -630,32 +633,37 @@ const DashboardPage: React.FC = () => {
                     const relatedTasks = traceabilityData.tasks.filter((t) =>
                       relatedStories.some((s) => s.id === t.storyId)
                     );
+                    const doneTasks = relatedTasks.filter((t) => t.status === 'done');
                     const counts = {
                       todo: relatedTasks.filter((t) => t.status === 'todo').length,
                       in_progress: relatedTasks.filter((t) => t.status === 'in_progress').length,
                       review: relatedTasks.filter((t) => t.status === 'review').length,
-                      done: relatedTasks.filter((t) => t.status === 'done').length,
+                      done: doneTasks.length,
                       blocked: relatedTasks.filter((t) => t.blocked).length,
-                      not_tested: relatedTasks.filter((t) => !t.testStatus || t.testStatus === 'not_tested').length,
-                      test_in_progress: relatedTasks.filter((t) => t.testStatus === 'in_progress').length,
-                      tested: relatedTasks.filter((t) => t.testStatus === 'tested').length,
-                      passed: relatedTasks.filter((t) => t.testStatus === 'passed').length,
-                      failed: relatedTasks.filter((t) => t.testStatus === 'failed').length,
-                      rejected: relatedTasks.filter((t) => t.testStatus === 'rejected').length,
+                      // Done & Test Status combinations
+                      done_not_tested: doneTasks.filter((t) => !t.testStatus || t.testStatus === 'not_tested').length,
+                      done_test_in_progress: doneTasks.filter((t) => t.testStatus === 'in_progress').length,
+                      done_tested: doneTasks.filter((t) => t.testStatus === 'tested').length,
+                      done_passed: doneTasks.filter((t) => t.testStatus === 'passed').length,
+                      done_failed: doneTasks.filter((t) => t.testStatus === 'failed').length,
+                      done_rejected: doneTasks.filter((t) => t.testStatus === 'rejected').length,
                     };
                     const total = relatedTasks.length;
                     const completed = counts.done;
-                    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const percentageDone = total > 0 ? Math.round((completed / total) * 100) : 0;
+                    const percentageDoneNotTested = completed > 0 ? Math.round((counts.done_not_tested / completed) * 100) : 0;
+                    const percentageDoneFailed = completed > 0 ? Math.round((counts.done_failed / completed) * 100) : 0;
+                    const percentageDonePassed = completed > 0 ? Math.round((counts.done_passed / completed) * 100) : 0;
                     const hasBlocked = counts.blocked > 0;
 
                     const epicIsOverdue = isOverdue(epic.dueDate, epic.status);
                     const rowBgColor = epicIsOverdue || hasBlocked
                       ? 'bg-red-50/30 border-red-200'
-                      : percentage === 100
+                      : percentageDone === 100
                       ? 'bg-emerald-50/30 border-emerald-200'
-                      : percentage >= 80
+                      : percentageDone >= 80
                       ? 'bg-green-50/30 border-green-200'
-                      : percentage >= 50
+                      : percentageDone >= 50
                       ? 'bg-amber-50/30 border-amber-200'
                       : '';
 
@@ -714,52 +722,65 @@ const DashboardPage: React.FC = () => {
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.not_tested > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
-                            {counts.not_tested}
+                          <span className={`font-semibold ${counts.done_not_tested > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                            {counts.done_not_tested}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.test_in_progress > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
-                            {counts.test_in_progress}
+                          <span className={`font-semibold ${counts.done_test_in_progress > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
+                            {counts.done_test_in_progress}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.tested > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
-                            {counts.tested}
+                          <span className={`font-semibold ${counts.done_tested > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {counts.done_tested}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-bold ${counts.passed > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
-                            {counts.passed}
+                          <span className={`font-bold ${counts.done_passed > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {counts.done_passed}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.failed > 0 ? 'text-red-700' : 'text-slate-400'}`}>
-                            {counts.failed}
+                          <span className={`font-semibold ${counts.done_failed > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                            {counts.done_failed}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.rejected > 0 ? 'text-orange-700' : 'text-slate-400'}`}>
-                            {counts.rejected}
+                          <span className={`font-semibold ${counts.done_rejected > 0 ? 'text-orange-700' : 'text-slate-400'}`}>
+                            {counts.done_rejected}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <ProgressIndicator
-                            percentage={percentage}
-                            total={total}
-                            completed={completed}
-                            size="sm"
-                            showBadge={false}
-                          />
+                        <TableCell align="right">
+                          <span className={`font-bold ${percentageDone > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                            {percentageDone}%
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${percentageDoneNotTested > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                            {percentageDoneNotTested}%
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-semibold ${percentageDoneFailed > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                            {percentageDoneFailed}%
+                          </span>
+                        </TableCell>
+                        <TableCell align="right">
+                          <span className={`font-bold ${percentageDonePassed > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                            {percentageDonePassed}%
+                          </span>
                         </TableCell>
                         <TableCell>
                           {hasBlocked ? (
                             <Badge variant="error" size="sm">⚠ Blocked</Badge>
-                          ) : percentage === 100 ? (
+                          ) : percentageDone === 100 && percentageDonePassed === 100 ? (
+                            <Badge variant="success" size="sm">✓ Complete & Passed</Badge>
+                          ) : percentageDone === 100 ? (
                             <Badge variant="success" size="sm">✓ Complete</Badge>
-                          ) : percentage >= 80 ? (
+                          ) : percentageDone >= 80 ? (
                             <Badge variant="success" size="sm">On Track</Badge>
-                          ) : percentage >= 50 ? (
+                          ) : percentageDone >= 50 ? (
                             <Badge variant="warning" size="sm">In Progress</Badge>
                           ) : (
                             <Badge variant="default" size="sm">Started</Badge>
