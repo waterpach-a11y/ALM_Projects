@@ -8,6 +8,8 @@ export interface Project {
   updatedAt?: any;
   deadline?: any;
   projectStatus: 'planned' | 'in_progress' | 'blocked' | 'closed';
+  codeLink?: string; // Link to code repository (GitHub, GitLab, etc.)
+  resultLink?: string; // Link to result (website, app, etc.)
 }
 
 export interface Epic {

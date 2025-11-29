@@ -8,6 +8,7 @@ import { getProjectDashboard } from './dashboard';
 import { gitlabWebhook, githubWebhook, slackWebhook } from './webhooks';
 import { createUser, inviteUser, importExistingUser } from './users';
 import { syncUserRoles, syncAllAdminRoles } from './syncRoles';
+import { sendWeeklyReports, sendWeeklyReportsManual, sendWeeklyReportsTest } from './reports';
 
 admin.initializeApp();
 
@@ -38,3 +39,6 @@ export { syncUserRoles, syncAllAdminRoles };
 
 // Webhooks
 export { gitlabWebhook, githubWebhook, slackWebhook };
+
+// Reports
+export { sendWeeklyReports, sendWeeklyReportsManual, sendWeeklyReportsTest };

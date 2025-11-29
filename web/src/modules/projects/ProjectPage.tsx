@@ -24,6 +24,8 @@ const ProjectPage: React.FC = () => {
   const [status, setStatus] = useState<'planned' | 'in_progress' | 'blocked' | 'closed'>('planned');
   const [members, setMembers] = useState<string[]>([]);
   const [ownerId, setOwnerId] = useState('');
+  const [codeLink, setCodeLink] = useState('');
+  const [resultLink, setResultLink] = useState('');
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   React.useEffect(() => {
@@ -43,6 +45,8 @@ const ProjectPage: React.FC = () => {
         const d = project.deadline.toDate() as Date;
         setDeadline(d.toISOString().slice(0, 10));
       }
+      setCodeLink((project as any).codeLink || '');
+      setResultLink((project as any).resultLink || '');
     }
   }, [project]);
 
@@ -95,6 +99,8 @@ const ProjectPage: React.FC = () => {
           projectStatus: status,
           owner: effectiveOwnerId || undefined,
           members: finalMembers,
+          codeLink: codeLink.trim() || undefined,
+          resultLink: resultLink.trim() || undefined,
           ...(deadline ? { deadline: new Date(deadline) } : {}),
         },
       });
@@ -229,6 +235,29 @@ const ProjectPage: React.FC = () => {
             </div>
           </Card>
         </div>
+
+        {/* Links */}
+        <Card className="bg-gradient-to-br from-white to-slate-50/30">
+          <SectionTitle>Project Links</SectionTitle>
+          <div className="mt-6 space-y-4">
+            <FormField label="Code Repository Link (GitHub, GitLab, etc.)">
+              <Input
+                type="url"
+                value={codeLink}
+                onChange={(e) => setCodeLink(e.target.value)}
+                placeholder="https://github.com/username/repository"
+              />
+            </FormField>
+            <FormField label="Result Link (Website, App, etc.)">
+              <Input
+                type="url"
+                value={resultLink}
+                onChange={(e) => setResultLink(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </FormField>
+          </div>
+        </Card>
 
         {/* Members */}
         <Card className="bg-gradient-to-br from-white to-slate-50/30">

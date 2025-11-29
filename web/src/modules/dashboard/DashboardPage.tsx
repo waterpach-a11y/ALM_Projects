@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useProjectDashboard } from './useProjectDashboard';
 import { useProjectStore } from '../projects/useProjectStore';
 import { useUsers } from '../users/useUsers';
+import { useProject } from '../projects/useProject';
 import {
   BarChart,
   Bar,
@@ -52,6 +53,7 @@ const DashboardPage: React.FC = () => {
   const { data, isLoading, error } = useProjectDashboard(projectId);
   const { data: traceabilityData, isLoading: traceabilityLoading } = useTraceability(projectId);
   const { data: users } = useUsers();
+  const { data: project } = useProject(projectId);
 
   if (!projectId) {
     return (
@@ -148,33 +150,66 @@ const DashboardPage: React.FC = () => {
         
         {/* Global Project Health Indicator */}
         {data && (
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-md">
-              <div className={`w-3 h-3 rounded-full ${
-                completionRate >= 80 ? 'bg-emerald-500' : completionRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
-              } animate-pulse`}></div>
-              <span className="text-sm font-semibold text-slate-700">Overall Health</span>
-              <Badge variant={completionRate >= 80 ? 'success' : completionRate >= 50 ? 'warning' : 'error'} size="sm">
-                {completionRate >= 80 ? '✓ Excellent' : completionRate >= 50 ? '⚠ Good' : '⚠ Needs Attention'}
-              </Badge>
-              <span className="text-sm font-bold text-slate-900 ml-2">{completionRate}%</span>
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-slate-300 rounded-xl shadow-md">
+                <div className={`w-3 h-3 rounded-full ${
+                  completionRate >= 80 ? 'bg-emerald-500' : completionRate >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                } animate-pulse`}></div>
+                <span className="text-sm font-semibold text-slate-700">Overall Health</span>
+                <Badge variant={completionRate >= 80 ? 'success' : completionRate >= 50 ? 'warning' : 'error'} size="sm">
+                  {completionRate >= 80 ? '✓ Excellent' : completionRate >= 50 ? '⚠ Good' : '⚠ Needs Attention'}
+                </Badge>
+                <span className="text-sm font-bold text-slate-900 ml-2">{completionRate}%</span>
+              </div>
+              {blockedTasksCount > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md">
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-red-700">{blockedTasksCount} Blocked Task{blockedTasksCount > 1 ? 's' : ''}</span>
+                </div>
+              )}
+              {verifiedRequirementsCount > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-2 border-emerald-300 rounded-xl shadow-md">
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-sm font-semibold text-emerald-700">{verifiedRequirementsCount} Verified Requirement{verifiedRequirementsCount > 1 ? 's' : ''}</span>
+                </div>
+              )}
             </div>
-            {blockedTasksCount > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border-2 border-red-300 rounded-xl shadow-md">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span className="text-sm font-semibold text-red-700">{blockedTasksCount} Blocked Task{blockedTasksCount > 1 ? 's' : ''}</span>
+            {/* Project Links */}
+            {(project as any)?.codeLink || (project as any)?.resultLink ? (
+              <div className="flex items-center gap-4 flex-wrap">
+                {(project as any)?.codeLink && (
+                  <a
+                    href={(project as any).codeLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 border-2 border-indigo-300 rounded-xl shadow-md hover:bg-indigo-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                    <span className="text-sm font-semibold text-indigo-700">View Code</span>
+                  </a>
+                )}
+                {(project as any)?.resultLink && (
+                  <a
+                    href={(project as any).resultLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-2 border-emerald-300 rounded-xl shadow-md hover:bg-emerald-100 transition-colors"
+                  >
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                    </svg>
+                    <span className="text-sm font-semibold text-emerald-700">View Result</span>
+                  </a>
+                )}
               </div>
-            )}
-            {verifiedRequirementsCount > 0 && (
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-50 border-2 border-emerald-300 rounded-xl shadow-md">
-                <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <span className="text-sm font-semibold text-emerald-700">{verifiedRequirementsCount} Verified Requirement{verifiedRequirementsCount > 1 ? 's' : ''}</span>
-              </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>

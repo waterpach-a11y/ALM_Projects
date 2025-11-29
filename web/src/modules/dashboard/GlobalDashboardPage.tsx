@@ -12,6 +12,8 @@ import { Avatar } from '../../components/ui/Avatar';
 import { useUsers, useProjectManagers } from '../users/useUsers';
 import { useCloneProject } from '../projects/useCloneProject';
 import { useImportProject } from '../projects/useImportProject';
+import { useDeleteProject } from '../projects/useDeleteProject';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { functions } from '../../firebase';
 import {
   BarChart,
@@ -40,6 +42,7 @@ const GlobalDashboardPage: React.FC = () => {
   const { data: projectManagers } = useProjectManagers();
   const cloneProject = useCloneProject();
   const importProject = useImportProject();
+  const deleteProject = useDeleteProject();
 
   const [cloneModalProjectId, setCloneModalProjectId] = React.useState<string | null>(null);
   const [cloneName, setCloneName] = React.useState('');
@@ -49,6 +52,8 @@ const GlobalDashboardPage: React.FC = () => {
   const [importName, setImportName] = React.useState('');
   const [importOwnerId, setImportOwnerId] = React.useState('');
   const [importPayload, setImportPayload] = React.useState<any | null>(null);
+
+  const [deleteModalProjectId, setDeleteModalProjectId] = React.useState<string | null>(null);
 
   console.debug('[GlobalDashboardPage] data = ', data);
 
@@ -245,6 +250,9 @@ const GlobalDashboardPage: React.FC = () => {
               <TableHeaderCell>Project Name</TableHeaderCell>
               <TableHeaderCell>Owner</TableHeaderCell>
               <TableHeaderCell>Status</TableHeaderCell>
+              <TableHeaderCell>Overall Health</TableHeaderCell>
+              <TableHeaderCell>Code Link</TableHeaderCell>
+              <TableHeaderCell>Result Link</TableHeaderCell>
               <TableHeaderCell>Members</TableHeaderCell>
               <TableHeaderCell align="right">Actions</TableHeaderCell>
             </TableHeader>
@@ -257,6 +265,10 @@ const GlobalDashboardPage: React.FC = () => {
                   closed: { variant: 'success' as const, label: 'Closed' },
                 };
                 const config = statusConfig[project.projectStatus] || statusConfig.planned;
+                const health = (project as any).overallHealth ?? 0;
+                const healthStatus = (project as any).healthStatus || 'needs_attention';
+                const healthVariant = healthStatus === 'excellent' ? 'success' : healthStatus === 'good' ? 'warning' : 'error';
+                const healthLabel = healthStatus === 'excellent' ? '✓ Excellent' : healthStatus === 'good' ? '⚠ Good' : '⚠ Needs Attention';
 
                 return (
                   <TableRow key={project.id} hover>
@@ -279,6 +291,46 @@ const GlobalDashboardPage: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       <Badge variant={config.variant}>{config.label}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={healthVariant} size="sm">{healthLabel}</Badge>
+                        <span className="text-sm font-semibold text-slate-700">{health}%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {project.codeLink ? (
+                        <a
+                          href={project.codeLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                          </svg>
+                          View Code
+                        </a>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {project.resultLink ? (
+                        <a
+                          href={project.resultLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-emerald-600 hover:text-emerald-700 text-sm font-medium flex items-center gap-1"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                          </svg>
+                          View Result
+                        </a>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -355,6 +407,14 @@ const GlobalDashboardPage: React.FC = () => {
                           }}
                         >
                           Import
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          disabled={deleteProject.isPending}
+                          onClick={() => setDeleteModalProjectId(project.id)}
+                        >
+                          Delete
                         </Button>
                       </div>
                     </TableCell>
@@ -558,6 +618,25 @@ const GlobalDashboardPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {deleteModalProjectId && (
+        <ConfirmDialog
+          isOpen={!!deleteModalProjectId}
+          onClose={() => setDeleteModalProjectId(null)}
+          onConfirm={async () => {
+            if (deleteModalProjectId) {
+              await deleteProject.mutateAsync({ projectId: deleteModalProjectId });
+              setDeleteModalProjectId(null);
+            }
+          }}
+          title="Delete Project"
+          message={`Are you sure you want to delete this project? This action cannot be undone and will delete all associated data (epics, stories, tasks, sprints, etc.).`}
+          confirmText="Delete"
+          confirmVariant="danger"
+          isLoading={deleteProject.isPending}
+        />
+      )}
     </div>
   );
 };

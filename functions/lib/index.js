@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.slackWebhook = exports.githubWebhook = exports.gitlabWebhook = exports.syncAllAdminRoles = exports.syncUserRoles = exports.importExistingUser = exports.inviteUser = exports.createUser = exports.getProjectDashboard = exports.updateBug = exports.createBug = exports.createTask = exports.createStory = exports.createEpic = exports.importProject = exports.exportProject = exports.cloneProject = exports.assignUserToProject = exports.deleteProject = exports.updateProject = exports.createProject = exports.setUserRoles = exports.authOnCreateUser = exports.healthCheck = void 0;
+exports.sendWeeklyReportsTest = exports.sendWeeklyReportsManual = exports.sendWeeklyReports = exports.slackWebhook = exports.githubWebhook = exports.gitlabWebhook = exports.syncAllAdminRoles = exports.syncUserRoles = exports.importExistingUser = exports.inviteUser = exports.createUser = exports.getProjectDashboard = exports.updateBug = exports.createBug = exports.createTask = exports.createStory = exports.createEpic = exports.importProject = exports.exportProject = exports.cloneProject = exports.assignUserToProject = exports.deleteProject = exports.updateProject = exports.createProject = exports.setUserRoles = exports.authOnCreateUser = exports.healthCheck = void 0;
 const functions = __importStar(require("firebase-functions"));
 const admin = __importStar(require("firebase-admin"));
 const auth_1 = require("./auth");
@@ -67,6 +67,10 @@ Object.defineProperty(exports, "importExistingUser", { enumerable: true, get: fu
 const syncRoles_1 = require("./syncRoles");
 Object.defineProperty(exports, "syncUserRoles", { enumerable: true, get: function () { return syncRoles_1.syncUserRoles; } });
 Object.defineProperty(exports, "syncAllAdminRoles", { enumerable: true, get: function () { return syncRoles_1.syncAllAdminRoles; } });
+const reports_1 = require("./reports");
+Object.defineProperty(exports, "sendWeeklyReports", { enumerable: true, get: function () { return reports_1.sendWeeklyReports; } });
+Object.defineProperty(exports, "sendWeeklyReportsManual", { enumerable: true, get: function () { return reports_1.sendWeeklyReportsManual; } });
+Object.defineProperty(exports, "sendWeeklyReportsTest", { enumerable: true, get: function () { return reports_1.sendWeeklyReportsTest; } });
 admin.initializeApp();
 exports.healthCheck = functions.https.onRequest((req, res) => {
     res.status(200).send({ status: 'ok' });

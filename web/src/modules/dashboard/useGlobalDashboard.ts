@@ -3,8 +3,13 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { Project } from '../../models';
 
+export interface ProjectWithHealth extends Project {
+  overallHealth?: number; // 0-100 completion rate
+  healthStatus?: 'excellent' | 'good' | 'needs_attention';
+}
+
 export interface GlobalDashboardData {
-  projects: Project[];
+  projects: ProjectWithHealth[];
   totalProjects: number;
   activeProjects: number;
   totalEpics: number;
@@ -42,6 +47,8 @@ export const useGlobalDashboard = () => {
           updatedAt: data.updatedAt,
           deadline: data.deadline,
           projectStatus: data.projectStatus || data.status || 'planned',
+          codeLink: data.codeLink,
+          resultLink: data.resultLink,
         };
       });
 
@@ -65,6 +72,9 @@ export const useGlobalDashboard = () => {
       let totalTasks = 0;
       let totalSprints = 0;
 
+      // Calculate overall health for each project and aggregate counts
+      const projectsWithHealth: ProjectWithHealth[] = [];
+      
       for (const project of projects) {
         try {
           const [epics, stories, tasks, sprints] = await Promise.all([
@@ -73,19 +83,44 @@ export const useGlobalDashboard = () => {
             getDocs(collection(db, 'projects', project.id, 'tasks')),
             getDocs(collection(db, 'projects', project.id, 'sprints')),
           ]);
+          
           totalEpics += epics.size;
           totalStories += stories.size;
           totalTasks += tasks.size;
           totalSprints += sprints.size;
+          
+          // Calculate completion rate (overall health)
+          let doneTasks = 0;
+          let totalTasksCount = tasks.size;
+          tasks.forEach((taskDoc) => {
+            const taskData = taskDoc.data();
+            if (taskData.status === 'done') {
+              doneTasks++;
+            }
+          });
+          
+          const overallHealth = totalTasksCount > 0 ? Math.round((doneTasks / totalTasksCount) * 100) : 0;
+          const healthStatus = overallHealth >= 80 ? 'excellent' : overallHealth >= 50 ? 'good' : 'needs_attention';
+          
+          projectsWithHealth.push({
+            ...project,
+            overallHealth,
+            healthStatus,
+          });
         } catch (e) {
-          // Ignore errors for projects without subcollections
+          // If error, add project without health data
+          projectsWithHealth.push({
+            ...project,
+            overallHealth: 0,
+            healthStatus: 'needs_attention' as const,
+          });
         }
       }
 
       const activeProjects = projects.filter((p) => p.projectStatus === 'in_progress').length;
 
       return {
-        projects,
+        projects: projectsWithHealth,
         totalProjects: projects.length,
         activeProjects,
         totalEpics,

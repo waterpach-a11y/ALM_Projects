@@ -144,6 +144,13 @@ exports.deleteProject = functions.https.onCall(async (data, context) => {
     if (!isAdmin(context) && !isOwner) {
         throw new functions.https.HttpsError('permission-denied', 'Only owner or admin can delete project');
     }
+    const subcollections = ['epics', 'stories', 'tasks', 'requirements', 'sprints', 'bugs', 'risks', 'documents'];
+    for (const subcollection of subcollections) {
+        const subcollectionRef = ref.collection(subcollection);
+        const subcollectionSnap = await subcollectionRef.get();
+        const deletePromises = subcollectionSnap.docs.map((doc) => doc.ref.delete());
+        await Promise.all(deletePromises);
+    }
     await ref.delete();
     return { success: true };
 });
