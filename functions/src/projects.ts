@@ -269,16 +269,20 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
     }
   }
 
-  // Clone epics
+  // Clone epics, reset status to 'todo' and clear assignment
   await cloneSubcollection(
     'epics',
-    (data) => data,
+    (data) => {
+      data.status = 'todo';
+      data.assignedTo = undefined;
+      return data;
+    },
     (oldId, newId) => {
       epicIdMap.set(oldId, newId);
     },
   );
 
-  // Clone stories, remapping epicId
+  // Clone stories, remapping epicId, reset status to 'todo' and clear assignment
   await cloneSubcollection(
     'stories',
     (data) => {
@@ -286,6 +290,8 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
         const mapped = epicIdMap.get(data.epicId);
         data.epicId = mapped ?? null;
       }
+      data.status = 'todo';
+      data.assignedTo = undefined;
       return data;
     },
     (oldId, newId) => {
@@ -293,7 +299,7 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
     },
   );
 
-  // Clone tasks, remapping storyId
+  // Clone tasks, remapping storyId and reset status to 'todo', clear progress fields
   await cloneSubcollection(
     'tasks',
     (data) => {
@@ -301,6 +307,16 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
         const mapped = storyIdMap.get(data.storyId);
         data.storyId = mapped ?? null;
       }
+      data.status = 'todo';
+      // Reset progress-related fields
+      data.timeSpent = 0;
+      data.remainingHours = data.estimatedHours || 0;
+      data.blocked = false;
+      data.blockedReason = undefined;
+      data.reviewRequested = false;
+      data.testStatus = 'not_tested';
+      // Clear assignment to start fresh
+      data.assignedTo = undefined;
       return data;
     },
     (oldId, newId) => {
