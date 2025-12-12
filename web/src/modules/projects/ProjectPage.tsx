@@ -91,18 +91,19 @@ const ProjectPage: React.FC = () => {
     })();
     try {
       setSaveState('saving');
+      const updateData: Record<string, any> = {
+        name,
+        description,
+        projectStatus: status,
+        members: finalMembers,
+        ...(effectiveOwnerId ? { owner: effectiveOwnerId } : {}),
+        ...(deadline ? { deadline: new Date(deadline) } : {}),
+        ...(codeLink.trim() ? { codeLink: codeLink.trim() } : {}),
+        ...(resultLink.trim() ? { resultLink: resultLink.trim() } : {}),
+      };
       await updateProject.mutateAsync({
         projectId: id,
-        data: {
-          name,
-          description,
-          projectStatus: status,
-          owner: effectiveOwnerId || undefined,
-          members: finalMembers,
-          codeLink: codeLink.trim() || undefined,
-          resultLink: resultLink.trim() || undefined,
-          ...(deadline ? { deadline: new Date(deadline) } : {}),
-        },
+        data: updateData,
       });
       setSaveState('saved');
       setTimeout(() => {

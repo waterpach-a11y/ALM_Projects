@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { httpsCallable } from 'firebase/functions';
 import { useGlobalDashboard } from './useGlobalDashboard';
@@ -14,6 +14,8 @@ import { useCloneProject } from '../projects/useCloneProject';
 import { useImportProject } from '../projects/useImportProject';
 import { useDeleteProject } from '../projects/useDeleteProject';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
+import { useSendWeeklyReports } from '../reports/useSendWeeklyReports';
+import { useAuth } from '../auth/AuthContext';
 import { functions } from '../../firebase';
 import {
   BarChart,
@@ -43,6 +45,8 @@ const GlobalDashboardPage: React.FC = () => {
   const cloneProject = useCloneProject();
   const importProject = useImportProject();
   const deleteProject = useDeleteProject();
+  const sendWeeklyReports = useSendWeeklyReports();
+  const { user } = useAuth();
 
   const [cloneModalProjectId, setCloneModalProjectId] = React.useState<string | null>(null);
   const [cloneName, setCloneName] = React.useState('');
@@ -54,6 +58,29 @@ const GlobalDashboardPage: React.FC = () => {
   const [importPayload, setImportPayload] = React.useState<any | null>(null);
 
   const [deleteModalProjectId, setDeleteModalProjectId] = React.useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showSendReportsModal, setShowSendReportsModal] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!user) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const tokenResult = await user.getIdTokenResult();
+        const roles = (tokenResult.claims.roles as string[]) || [];
+        setIsAdmin(roles.includes('admin'));
+      } catch (error) {
+        console.error('Error checking admin role:', error);
+        setIsAdmin(false);
+      }
+    };
+
+    checkAdminRole();
+  }, [user]);
 
   console.debug('[GlobalDashboardPage] data = ', data);
 
@@ -128,16 +155,31 @@ const GlobalDashboardPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Global Dashboard</h1>
           <p className="text-slate-600 font-medium">Comprehensive overview of all projects and metrics</p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => navigate('/app/projects/create')}
-          className="flex items-center gap-2"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Create Project
-        </Button>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <Button
+              variant="info"
+              onClick={() => setShowSendReportsModal(true)}
+              className="flex items-center gap-2"
+              disabled={sendWeeklyReports.isPending}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              {sendWeeklyReports.isPending ? 'Sending...' : 'Send Weekly Reports'}
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            onClick={() => navigate('/app/projects/create')}
+            className="flex items-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Project
+          </Button>
+        </div>
       </div>
 
       {/* Global KPIs */}
@@ -635,6 +677,34 @@ const GlobalDashboardPage: React.FC = () => {
           confirmText="Delete"
           confirmVariant="danger"
           isLoading={deleteProject.isPending}
+        />
+      )}
+
+      {/* Send Weekly Reports Confirmation Dialog */}
+      {showSendReportsModal && (
+        <ConfirmDialog
+          isOpen={showSendReportsModal}
+          onClose={() => setShowSendReportsModal(false)}
+          onConfirm={async () => {
+            try {
+              const result = await sendWeeklyReports.mutateAsync();
+              setShowSendReportsModal(false);
+              alert(
+                `✅ Weekly reports sent successfully!\n\n` +
+                `Total recipients: ${result.totalRecipients}\n` +
+                `Successful: ${result.results.filter((r) => r.success).length}\n` +
+                `Failed: ${result.results.filter((r) => !r.success).length}`
+              );
+            } catch (error: any) {
+              console.error('Error sending weekly reports:', error);
+              alert(`❌ Error sending weekly reports: ${error.message || 'Unknown error'}`);
+            }
+          }}
+          title="Send Weekly Reports"
+          message="Are you sure you want to send weekly reports to all project owners and managers? This will send email reports for all projects."
+          confirmText="Send Reports"
+          confirmVariant="info"
+          isLoading={sendWeeklyReports.isPending}
         />
       )}
     </div>

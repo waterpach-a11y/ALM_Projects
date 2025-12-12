@@ -213,6 +213,7 @@ service cloud.firestore {
                       && isValidWorkflowStatus(projectId, request.resource.data.status)
                       && request.resource.data.storyPoints is number;
 
+
         // Allow update if status hasn't changed OR if new status is valid
         allow update: if canEditBacklog(project())
                       && (request.resource.data.status == resource.data.status

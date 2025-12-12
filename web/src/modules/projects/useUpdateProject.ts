@@ -29,7 +29,16 @@ export const useUpdateProject = () => {
         payload.members = membersMap;
       }
 
-      await updateDoc(ref, payload);
+      // Filter out undefined values (Firestore doesn't accept undefined)
+      // Convert undefined to null for optional fields, or omit them entirely
+      const cleanPayload: Record<string, any> = {};
+      for (const [key, value] of Object.entries(payload)) {
+        if (value !== undefined) {
+          cleanPayload[key] = value;
+        }
+      }
+
+      await updateDoc(ref, cleanPayload);
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
