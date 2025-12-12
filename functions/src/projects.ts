@@ -274,7 +274,7 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
     'epics',
     (data) => {
       data.status = 'todo';
-      data.assignedTo = undefined;
+      delete data.assignedTo;
       return data;
     },
     (oldId, newId) => {
@@ -291,7 +291,7 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
         data.epicId = mapped ?? null;
       }
       data.status = 'todo';
-      data.assignedTo = undefined;
+      delete data.assignedTo;
       return data;
     },
     (oldId, newId) => {
@@ -312,11 +312,11 @@ export const cloneProject = functions.https.onCall(async (data, context) => {
       data.timeSpent = 0;
       data.remainingHours = data.estimatedHours || 0;
       data.blocked = false;
-      data.blockedReason = undefined;
+      delete data.blockedReason;
       data.reviewRequested = false;
       data.testStatus = 'not_tested';
       // Clear assignment to start fresh
-      data.assignedTo = undefined;
+      delete data.assignedTo;
       return data;
     },
     (oldId, newId) => {

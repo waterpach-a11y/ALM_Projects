@@ -231,7 +231,7 @@ exports.cloneProject = functions.https.onCall(async (data, context) => {
     }
     await cloneSubcollection('epics', (data) => {
         data.status = 'todo';
-        data.assignedTo = undefined;
+        delete data.assignedTo;
         return data;
     }, (oldId, newId) => {
         epicIdMap.set(oldId, newId);
@@ -242,7 +242,7 @@ exports.cloneProject = functions.https.onCall(async (data, context) => {
             data.epicId = mapped ?? null;
         }
         data.status = 'todo';
-        data.assignedTo = undefined;
+        delete data.assignedTo;
         return data;
     }, (oldId, newId) => {
         storyIdMap.set(oldId, newId);
@@ -256,10 +256,10 @@ exports.cloneProject = functions.https.onCall(async (data, context) => {
         data.timeSpent = 0;
         data.remainingHours = data.estimatedHours || 0;
         data.blocked = false;
-        data.blockedReason = undefined;
+        delete data.blockedReason;
         data.reviewRequested = false;
         data.testStatus = 'not_tested';
-        data.assignedTo = undefined;
+        delete data.assignedTo;
         return data;
     }, (oldId, newId) => {
         taskIdMap.set(oldId, newId);
