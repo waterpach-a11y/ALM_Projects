@@ -79,6 +79,8 @@ export const useCreateEpic = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['epics', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };
@@ -124,6 +126,8 @@ export const useUpdateEpic = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['epics', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };
@@ -144,6 +148,8 @@ export const useDeleteEpic = () => {
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['epics', projectId] });
       queryClient.invalidateQueries({ queryKey: ['stories', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };

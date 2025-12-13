@@ -32,6 +32,8 @@ import { useTraceability } from './useTraceability';
 import { TraceabilityTable } from '../../components/traceability/TraceabilityTable';
 import { ProgressIndicator } from '../../components/ui/ProgressIndicator';
 import { isOverdue, getDaysOverdue } from '../../utils/dateUtils';
+import { TasksFilterModal } from '../../components/forms/TasksFilterModal';
+import { Task } from '../backlog/useTasks';
 
 const STATUS_COLORS: Record<string, string> = {
   todo: '#94a3b8',
@@ -54,6 +56,41 @@ const DashboardPage: React.FC = () => {
   const { data: traceabilityData, isLoading: traceabilityLoading } = useTraceability(projectId);
   const { data: users } = useUsers();
   const { data: project } = useProject(projectId);
+
+  // State for tasks filter modal
+  const [filterModalOpen, setFilterModalOpen] = React.useState(false);
+  const [filteredTasks, setFilteredTasks] = React.useState<Task[]>([]);
+  const [filterTitle, setFilterTitle] = React.useState('');
+  const [filterEpicTitle, setFilterEpicTitle] = React.useState<string | undefined>();
+  const [filterStoryTitle, setFilterStoryTitle] = React.useState<string | undefined>();
+  const [filterCriteria, setFilterCriteria] = React.useState<{
+    epicId?: string;
+    storyId?: string;
+    status?: string;
+    testStatus?: string;
+    blocked?: boolean;
+  } | undefined>();
+
+  const openTasksFilter = (
+    tasks: Task[],
+    title: string,
+    epicTitle?: string,
+    storyTitle?: string,
+    criteria?: {
+      epicId?: string;
+      storyId?: string;
+      status?: string;
+      testStatus?: string;
+      blocked?: boolean;
+    }
+  ) => {
+    setFilteredTasks(tasks);
+    setFilterTitle(title);
+    setFilterEpicTitle(epicTitle);
+    setFilterStoryTitle(storyTitle);
+    setFilterCriteria(criteria);
+    setFilterModalOpen(true);
+  };
 
   if (!projectId) {
     return (
@@ -729,60 +766,154 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell align="right">
-                          <span className="font-bold text-slate-900">{total}</span>
+                          <span
+                            className={`font-bold ${total > 0 ? 'text-slate-900 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => total > 0 && openTasksFilter(relatedTasks, `All Tasks - ${epic.title}`, epic.title)}
+                            title={total > 0 ? 'Click to view all tasks' : ''}
+                          >
+                            {total}
+                          </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.todo > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.todo > 0 ? 'text-slate-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.todo > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'todo'),
+                              `Todo Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.todo > 0 ? 'Click to view todo tasks' : ''}
+                          >
                             {counts.todo}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.in_progress > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'in_progress'),
+                              `In Progress Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.in_progress > 0 ? 'Click to view in progress tasks' : ''}
+                          >
                             {counts.in_progress}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.review > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.review > 0 ? 'text-amber-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.review > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'review'),
+                              `Review Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.review > 0 ? 'Click to view review tasks' : ''}
+                          >
                             {counts.review}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-bold ${counts.done > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-bold ${counts.done > 0 ? 'text-emerald-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done > 0 && openTasksFilter(
+                              doneTasks,
+                              `Done Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done > 0 ? 'Click to view done tasks' : ''}
+                          >
                             {counts.done}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.blocked > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.blocked > 0 ? 'text-red-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.blocked > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.blocked),
+                              `Blocked Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.blocked > 0 ? 'Click to view blocked tasks' : ''}
+                          >
                             {counts.blocked}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.done_not_tested > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.done_not_tested > 0 ? 'text-slate-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_not_tested > 0 && openTasksFilter(
+                              doneTasks.filter((t) => !t.testStatus || t.testStatus === 'not_tested'),
+                              `Done & Not Tested Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_not_tested > 0 ? 'Click to view done & not tested tasks' : ''}
+                          >
                             {counts.done_not_tested}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.done_test_in_progress > 0 ? 'text-blue-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.done_test_in_progress > 0 ? 'text-blue-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_test_in_progress > 0 && openTasksFilter(
+                              doneTasks.filter((t) => t.testStatus === 'in_progress'),
+                              `Done & Test In Progress Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_test_in_progress > 0 ? 'Click to view done & test in progress tasks' : ''}
+                          >
                             {counts.done_test_in_progress}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.done_tested > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.done_tested > 0 ? 'text-indigo-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_tested > 0 && openTasksFilter(
+                              doneTasks.filter((t) => t.testStatus === 'tested'),
+                              `Done & Tested Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_tested > 0 ? 'Click to view done & tested tasks' : ''}
+                          >
                             {counts.done_tested}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-bold ${counts.done_passed > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-bold ${counts.done_passed > 0 ? 'text-emerald-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_passed > 0 && openTasksFilter(
+                              doneTasks.filter((t) => t.testStatus === 'passed'),
+                              `Done & Passed Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_passed > 0 ? 'Click to view done & passed tasks' : ''}
+                          >
                             {counts.done_passed}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.done_failed > 0 ? 'text-red-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.done_failed > 0 ? 'text-red-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_failed > 0 && openTasksFilter(
+                              doneTasks.filter((t) => t.testStatus === 'failed'),
+                              `Done & Failed Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_failed > 0 ? 'Click to view done & failed tasks' : ''}
+                          >
                             {counts.done_failed}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.done_rejected > 0 ? 'text-orange-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.done_rejected > 0 ? 'text-orange-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done_rejected > 0 && openTasksFilter(
+                              doneTasks.filter((t) => t.testStatus === 'rejected'),
+                              `Done & Rejected Tasks - ${epic.title}`,
+                              epic.title
+                            )}
+                            title={counts.done_rejected > 0 ? 'Click to view done & rejected tasks' : ''}
+                          >
                             {counts.done_rejected}
                           </span>
                         </TableCell>
@@ -847,6 +978,7 @@ const DashboardPage: React.FC = () => {
                 <TableBody>
                   {traceabilityData.stories.map((story) => {
                     const relatedTasks = traceabilityData.tasks.filter((t) => t.storyId === story.id);
+                    const epic = traceabilityData.epics.find((e) => e.id === story.epicId);
                     const counts = {
                       todo: relatedTasks.filter((t) => t.status === 'todo').length,
                       in_progress: relatedTasks.filter((t) => t.status === 'in_progress').length,
@@ -887,25 +1019,71 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell align="right">
-                          <span className="font-bold text-slate-900">{total}</span>
+                          <span
+                            className={`font-bold ${total > 0 ? 'text-slate-900 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => total > 0 && openTasksFilter(relatedTasks, `All Tasks - ${story.title}`, epic?.title, story.title, { storyId: story.id })}
+                            title={total > 0 ? 'Click to view all tasks' : ''}
+                          >
+                            {total}
+                          </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.todo > 0 ? 'text-slate-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.todo > 0 ? 'text-slate-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.todo > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'todo'),
+                              `Todo Tasks - ${story.title}`,
+                              epic?.title,
+                              story.title,
+                              { storyId: story.id, status: 'todo' }
+                            )}
+                            title={counts.todo > 0 ? 'Click to view todo tasks' : ''}
+                          >
                             {counts.todo}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.in_progress > 0 ? 'text-indigo-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.in_progress > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'in_progress'),
+                              `In Progress Tasks - ${story.title}`,
+                              epic?.title,
+                              story.title,
+                              { storyId: story.id, status: 'in_progress' }
+                            )}
+                            title={counts.in_progress > 0 ? 'Click to view in progress tasks' : ''}
+                          >
                             {counts.in_progress}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-semibold ${counts.review > 0 ? 'text-amber-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-semibold ${counts.review > 0 ? 'text-amber-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.review > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'review'),
+                              `Review Tasks - ${story.title}`,
+                              epic?.title,
+                              story.title,
+                              { storyId: story.id, status: 'review' }
+                            )}
+                            title={counts.review > 0 ? 'Click to view review tasks' : ''}
+                          >
                             {counts.review}
                           </span>
                         </TableCell>
                         <TableCell align="right">
-                          <span className={`font-bold ${counts.done > 0 ? 'text-emerald-700' : 'text-slate-400'}`}>
+                          <span
+                            className={`font-bold ${counts.done > 0 ? 'text-emerald-700 cursor-pointer hover:text-indigo-600 hover:underline' : 'text-slate-400'}`}
+                            onClick={() => counts.done > 0 && openTasksFilter(
+                              relatedTasks.filter((t) => t.status === 'done'),
+                              `Done Tasks - ${story.title}`,
+                              epic?.title,
+                              story.title,
+                              { storyId: story.id, status: 'done' }
+                            )}
+                            title={counts.done > 0 ? 'Click to view done tasks' : ''}
+                          >
                             {counts.done}
                           </span>
                         </TableCell>
@@ -1032,6 +1210,20 @@ const DashboardPage: React.FC = () => {
           </Card>
         </div>
       ) : null}
+
+      {/* Tasks Filter Modal */}
+      {projectId && (
+        <TasksFilterModal
+          isOpen={filterModalOpen}
+          onClose={() => setFilterModalOpen(false)}
+          title={filterTitle}
+          tasks={filteredTasks}
+          projectId={projectId}
+          epicTitle={filterEpicTitle}
+          storyTitle={filterStoryTitle}
+          filterCriteria={filterCriteria}
+        />
+      )}
     </div>
   );
 };

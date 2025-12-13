@@ -134,6 +134,8 @@ export const useUpdateStory = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['stories', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };

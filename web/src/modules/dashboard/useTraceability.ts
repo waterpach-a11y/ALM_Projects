@@ -22,6 +22,8 @@ export const useTraceability = (projectId: string | null) => {
   return useQuery<TraceabilityData | null>({
     queryKey: ['traceability', projectId],
     enabled: !!projectId,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
     queryFn: async () => {
       if (!projectId) return null;
 

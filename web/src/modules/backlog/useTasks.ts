@@ -161,6 +161,8 @@ export const useUpdateTask = () => {
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };
@@ -181,6 +183,8 @@ export const useDeleteTask = () => {
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
       queryClient.invalidateQueries({ queryKey: ['requirements', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['traceability', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['project-dashboard', projectId] });
     },
   });
 };
