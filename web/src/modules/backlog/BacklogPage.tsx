@@ -117,6 +117,31 @@ const BacklogPage: React.FC = () => {
     });
   };
 
+  const handleTaskDragEnd = async (result: DropResult) => {
+    if (!projectId || !tasks) return;
+    const { destination, source, draggableId } = result;
+
+    if (!destination) return;
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    // Extract task ID from draggableId (format: "task-{taskId}")
+    const taskId = draggableId.replace('task-', '');
+    const newStatus = destination.droppableId.replace('task-', '') as string;
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.status === newStatus) return;
+
+    await updateTask.mutateAsync({
+      projectId: projectId,
+      taskId: task.id,
+      updates: { status: newStatus },
+    });
+  };
+
   const handleCreateStory = async (e: FormEvent) => {
     e.preventDefault();
     if (!projectId || !selectedEpicId || !newStoryTitle.trim()) return;
@@ -315,7 +340,15 @@ const BacklogPage: React.FC = () => {
 
       {/* Stories and Tasks Section */}
       {selectedEpicId && (
-        <DragDropContext onDragEnd={handleStoryDragEnd}>
+        <DragDropContext onDragEnd={(result) => {
+          // Handle both story and task drags
+          // Tasks have draggableId starting with "task-" and droppableId starting with "task-"
+          if (result.draggableId.startsWith('task-') || (result.destination && result.destination.droppableId.startsWith('task-'))) {
+            handleTaskDragEnd(result);
+          } else {
+            handleStoryDragEnd(result);
+          }
+        }}>
           {/* Stories Section - Full Width */}
           <div>
             <SectionTitle>Stories</SectionTitle>
@@ -458,90 +491,126 @@ const BacklogPage: React.FC = () => {
           {selectedStoryId && (
             <div className="mt-6">
               <SectionTitle>Tasks</SectionTitle>
-            {tasksLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader />
-              </div>
-            ) : (
-              <div className="space-y-3 mt-4">
-                {tasks?.map((task) => {
-                  const isSelected = task.id === selectedTaskId;
-                  return (
-                    <Card
-                      key={task.id}
-                      hover
-                      className={`transition-all duration-200 border-2 ${
-                        isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : task.blocked ? 'border-red-400 bg-red-50 shadow-md' : 'border-slate-300 shadow-md'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div
-                          className="flex-1 cursor-pointer"
-                          onClick={() => setSelectedTaskId(task.id)}
-                        >
-                          <h4 className="font-medium text-slate-900">{task.title}</h4>
+              {tasksLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader />
+                </div>
+              ) : (
+                <div className="mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {['todo', 'in_progress', 'review', 'done'].map((columnStatus) => {
+                      const columnTasks = tasks?.filter((t) => t.status === columnStatus) ?? [];
+                      return (
+                        <div key={columnStatus} className="flex flex-col bg-slate-50 border-2 border-slate-300 rounded-xl p-4 min-h-[200px] shadow-md">
+                          <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-slate-300">
+                            <span className="text-xs font-semibold text-slate-700 uppercase tracking-wide">
+                              {columnStatus.replace('_', ' ')}
+                            </span>
+                            <Badge size="sm" variant="default">
+                              {columnTasks.length}
+                            </Badge>
+                          </div>
+                          <Droppable droppableId={`task-${columnStatus}`}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.droppableProps}
+                                className={`flex-1 space-y-2 min-h-[100px] rounded-lg p-2 transition-colors ${
+                                  snapshot.isDraggingOver ? 'bg-indigo-50 border-2 border-dashed border-indigo-400' : ''
+                                }`}
+                              >
+                                {columnTasks.length === 0 && !snapshot.isDraggingOver && (
+                                  <div className="text-center py-8 text-xs text-slate-400">
+                                    No tasks
+                                  </div>
+                                )}
+                                {columnTasks.map((task, index) => {
+                                  const isSelected = task.id === selectedTaskId;
+                                  return (
+                                    <Draggable key={task.id} draggableId={`task-${task.id}`} index={index}>
+                                      {(dragProvided, dragSnapshot) => (
+                                        <Card
+                                          hover
+                                          ref={dragProvided.innerRef}
+                                          {...dragProvided.draggableProps}
+                                          {...dragProvided.dragHandleProps}
+                                          className={`cursor-grab active:cursor-grabbing p-4 transition-all duration-200 border-2 ${
+                                            isSelected ? 'ring-2 ring-indigo-500 border-indigo-400 shadow-lg' : task.blocked ? 'border-red-400 bg-red-50 shadow-md' : 'border-slate-300 shadow-md'
+                                          } ${
+                                            dragSnapshot.isDragging
+                                              ? 'shadow-xl scale-[1.02] border-indigo-500 bg-white rotate-2'
+                                              : ''
+                                          }`}
+                                        >
+                                          <div className="flex items-start justify-between mb-2">
+                                            <div
+                                              className="flex-1 cursor-pointer"
+                                              onClick={() => setSelectedTaskId(task.id)}
+                                            >
+                                              <h4 className="font-medium text-slate-900 text-sm">
+                                                {task.title}
+                                              </h4>
+                                            </div>
+                                            <div className="flex items-center gap-1">
+                                              {task.blocked && <Badge variant="error" size="sm">Blocked</Badge>}
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setEditingTask(task);
+                                                }}
+                                                className="p-1 rounded hover:bg-slate-100 transition-colors"
+                                                title="Edit task"
+                                              >
+                                                <svg className="w-3.5 h-3.5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                              </button>
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setDeletingTaskId(task.id);
+                                                }}
+                                                className="p-1 rounded hover:bg-red-50 transition-colors"
+                                                title="Delete task"
+                                              >
+                                                <svg className="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                              </button>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-2 text-xs text-slate-500 flex-wrap">
+                                            {task.assignedTo && (
+                                              <div className="flex items-center gap-1">
+                                                <Avatar name={task.assignedTo} size="sm" />
+                                              </div>
+                                            )}
+                                            {task.estimatedHours && <span className="font-medium">{task.estimatedHours}h</span>}
+                                            {task.tags && task.tags.length > 0 && (
+                                              <div className="flex gap-1 flex-wrap">
+                                                {task.tags.map((tag, idx) => (
+                                                  <Badge key={idx} size="sm" variant="default">
+                                                    {tag}
+                                                  </Badge>
+                                                ))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </Card>
+                                      )}
+                                    </Draggable>
+                                  );
+                                })}
+                                {provided.placeholder}
+                              </div>
+                            )}
+                          </Droppable>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {task.blocked && <Badge variant="error" size="sm">Blocked</Badge>}
-                          <Badge variant={task.status === 'done' ? 'success' : task.status === 'in_progress' ? 'info' : 'default'} size="sm">
-                            {task.status}
-                          </Badge>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingTask(task);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                              title="Edit task"
-                            >
-                              <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                              </svg>
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingTaskId(task.id);
-                              }}
-                              className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                              title="Delete task"
-                            >
-                              <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-slate-500 flex-wrap">
-                        {task.assignedTo && (
-                          <div className="flex items-center gap-1">
-                            <Avatar name={task.assignedTo} size="sm" />
-                            <span className="text-xs">{task.assignedTo}</span>
-                          </div>
-                        )}
-                        {task.estimatedHours && <span className="text-xs">{task.estimatedHours}h</span>}
-                        {task.tags && task.tags.length > 0 && (
-                          <div className="flex gap-1 flex-wrap">
-                            {task.tags.map((tag, idx) => (
-                              <Badge key={idx} size="sm" variant="default">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </Card>
-                  );
-                })}
-                {(!tasks || tasks.length === 0) && (
-                  <Card>
-                    <p className="text-sm text-slate-500 text-center py-4">No tasks yet for this story.</p>
-                  </Card>
-                )}
-              </div>
-            )}
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <Card className="mt-4">
                 <form onSubmit={handleCreateTask} className="space-y-2">
